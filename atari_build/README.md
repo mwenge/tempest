@@ -6,10 +6,10 @@
 * [Starting the Build Environment](#starting-the-build-environment)
 * [Let's Build](#lets-build)
 * [Let's Link](#lets-link)
-* [About Our Emulated Build Environment](#about-our-emulated-build-environment)
 * [Getting Files off the PDP-11 and Onto Our Local Machine](#getting-files-off-the-pdp-11-and-onto-our-local-machine)
-* [The Files in this Directory](#the-files-in-this-directory)
-* [tempest_original.rk05: The Tempest Source Files](#tempest_originalrk05-the-tempest-source-files)
+* [About Our Emulated Build Environment](#about-our-emulated-build-environment)
+  * [The Files in this Directory](#the-files-in-this-directory)
+  * [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05)
 * [Sidenote: Viewing A Floppy Disk](#sidenote-viewing-a-floppy-disk)
 * [Acknowledgments](#acknowledgments)
 
@@ -182,23 +182,52 @@ ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53
 BIN:ALEXEC.SAV 
 ```
 
+## Getting Files off the PDP-11 and Onto Our Local Machine
+This is tedious unfortunately. To get a single file off the PDP11 we do the following.
+
+Press Ctrl-E to suspend the emulation. Now we set up the `ptp` (print device) to point to a
+file on our local filesystem called `file.obj`. This name is arbitrary.
+
+```
+att ptp file.obj
+```
+
+Now we re-enter the emulation:
+```
+cont
+```
+
+Finally we copy a file from the PDP11, in this case one of our object files `ALDIS2.OBJ`, to the file
+on our local filesystem:
+
+```
+COPY DK:ALDIS2.OBJ PC:
+```
+
+Now on our local filesystem we can rename `file.obj` to its correct name, e.g.:
+
+```
+mv file.obj ALDIS2.OBJ
+```
+
+We need to repeat this process for each file we're interested in.
+
 ## About Our Emulated Build Environment
 
-## Getting Files off the PDP-11 and Onto Our Local Machine
 
-## The Files in this Directory
+### The Files in this Directory
 File|Description
-| --- | 
+| --- | --- |
 tempest.ini| Configuration file for PDP-11.
 sy.rk05| The PDP-11/RT-11 system disk
 tempest_original.rk05| Our cartridge disk containing the Tempest sources
 
 
-## tempest_original.rk05: The Tempest Source Files
+### The Tempest Source Files: tempest_original.rk05 
 The Tempest source files are available from the [Historical Sources GitHub repository](https://github.com/historicalsource/tempest).
 In order to build them in RT-11 we needed to create a virtual RK05 cartridge disk that our emulated RT-11 can use. In a Jupyter notebook
 we
-[create this disk image with the tempest sources on it](../notebooks/Create RK05 Disk Cartridge File Image From Tempest Sources.ipynb).
+[create this disk image with the tempest sources on it](../notebooks/Create%20RK05%20Disk%20Cartridge%20File%20Image%20From%20Tempest%20Sources.ipynb).
 The format of these disk images is relatively simple (once you find the [appropriate documentation](../material/AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf). And of course it helps to have [something to start from](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op) thanks
 to [Thomas Cherryhomes](https://github.com/tschak909).
 
@@ -246,7 +275,7 @@ Now we can  attach the virtual floppy disk file. In this case we'll attach the
 `linkm.x01` file containing a modified version of `LINKM`:
 
 ```
-att rx0. linkm.x01
+att rx0 linkm.x01
 ```
 
 Now let's go back into RT-11:
