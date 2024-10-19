@@ -1,0 +1,14 @@
+ATARI LINKM V05.00 LOAD MAP   8-SEP-81    15:25:17 
+BIN:STATE2.SAV 
+
+BIN:STATE2,STATE2.XX=OBJ:STATE2
+
+File Summary:
+    Name	Module	Ident	Creation Date/Time
+OBJ:STATE2      STATE2          8-SEP-81  15:25:13
+
+Section Summary:
+ Name   Addr   Size   Attributes     References (Files):
+. ABS.  0000   1100   ABS,OVR      STATE2  
+
+Low limit = 1000   High limit = 1100   

@@ -1,0 +1,116 @@
+...X=0
+.MACRO	DEFIF	...1,...2
+.MACRO	...1
+	IFXX	...2
+	.ENDM
+	.ENDM
+.MACRO	IFXX	...1
+	LOC
+	...1	.+2
+	.ENDM
+.MACRO	THEN
+	FND
+	.ENDM
+.MACRO ENDIF
+	FND
+	.ENDM
+.MACRO	ELSE
+	CLV
+	IFVS
+	SWAP
+	THEN
+	.ENDM
+.MACRO	BEGIN
+	LOC
+	.ENDM
+.MACRO	LOC
+	...RD=10
+	.RADIX	10.
+	...X=...X+1
+	.LOC.	\...X
+	.RADIX	...RD
+	.ENDM
+.MACRO	.LOC.	...1
+	S'...1=.
+	.ENDM
+.MACRO	FND
+	...RD=10
+	.RADIX	10.
+	.FND.	\...X
+	...X=...X-1
+	.RADIX	...RD
+	.ENDM
+.MACRO	.FND.	...1
+	...T=.-S'...1-2
+	.IIF LT,...T+128,.ERROR ...T;A
+	.IIF GT,...T-127,.ERROR ...T;A
+	...T=.
+	.=S'...1+1
+	.BYTE	...T-S'...1-2
+	.=...T
+	.ENDM
+.MACRO	SWAP
+	...RD=10
+	.RADIX	10.
+	.Z.=...X-1
+	.SWAP.	\...X,\.Z.
+	.RADIX	...RD
+	.ENDM
+.MACRO	.SWAP.	...1,...2
+	...T=S'...2
+	S'...2=S'...1
+	S'...1=...T
+	.ENDM
+.MACRO	DEFEND	...1,...2,...3
+.MACRO	...1
+	..END	...2,...3
+	.ENDM
+	.ENDM
+.MACRO	..END	...1,...2
+	...RD=10
+	.RADIX	10.
+	.END.	...1,...2,\...X
+	...X=...X-1
+	.RADIX	...RD
+	.ENDM
+.MACRO	.END.	...1,...2,...3
+	.IF	GE,.-S'...3-127.
+	...2	.+5
+	JMP	S'...3
+	.IFF
+	...1	S'...3
+	.ENDC
+	.ENDM
+	DEFIF	IFCC,BCS
+	DEFIF	IFCS,BCC
+	DEFIF	IFEQ,BNE
+	DEFIF	IFNE,BEQ
+	DEFIF	IFMI,BPL
+	DEFIF	IFPL,BMI
+	DEFIF	IFVC,BVS
+	DEFIF	IFVS,BVC
+	DEFEND	CCEND,BCS,BCC
+	DEFEND	CSEND,BCC,BCS
+	DEFEND	EQEND,BNE,BEQ
+	DEFEND	NEEND,BEQ,BNE
+	DEFEND	MIEND,BPL,BMI
+	DEFEND	PLEND,BMI,BPL
+	DEFEND	VCEND,BVS,BVC
+	DEFEND	VSEND,BVC,BVS
+.MACRO	LDAL	...1
+	.BYTE	0A9
+	.WORD	...1
+	.=.-1
+	.ENDM
+.MACRO	LDAH	...1
+	.BYTE	0A9
+	.ENABL	M68
+	.WORD	...1
+	.DSABL	M68
+	.=.-1
+	.ENDM
+.MACRO HLL65
+	.IIF NE,...X,.ERROR ...X;U
+	.ENDM
+	.LIST MEB
+	.NLIST BYT

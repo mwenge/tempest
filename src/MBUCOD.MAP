@@ -1,0 +1,18 @@
+ATARI LINKM V05.00 LOAD MAP   4-SEP-81    05:34:28 
+BIN:03617X.SAV 
+
+BIN:03617X,MBUCOD.XX=OBJ:MBUCOD
+
+File Summary:
+    Name	Module	Ident	Creation Date/Time
+OBJ:MBUCOD      MBUCOD          4-SEP-81  05:28:05
+
+Section Summary:
+ Name   Addr   Size   Attributes     References (Files):
+. ABS.  0000   841F   ABS,OVR      MBUCOD  
+
+Global Symbol Summary:
+ Name   Value   Name   Value   Name   Value   Name   Value   Name   Value  
+DIVID   6660   DSPQ    6200   MULXP   6228   MULYP   63F0   PSTART  6000   
+
+Low limit = 6000   High limit = 841F   
