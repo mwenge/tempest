@@ -1,0 +1,660 @@
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24
+TABLE OF CONTENTS
+
+   1-  5 **************************************************
+   1-  6 *						*
+   1-  7 *MODULE:		ALCOMN				*
+   1-  8 *PROGRAMMER:	DAVE THEURER			*
+   1-  9 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 10 *		TO BE .INCLUDED IN:		*
+   1- 11 *		    ALGAME,ALDISP,ALHARD	*
+   1- 12 *						*
+   1- 13	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 14	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 15	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 16	STRICTLY PROHIBITED.
+   1- 17 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  15- 17 COIN65 - 650X "UNIVERSAL" COIN ROUTINE
+  15- 18 *********************************
+  15- 19 * PROGRAMERS: DOWNEND & ALBAUGH *
+  15- 20 *                               *
+  15- 21 * CHECKER:                      *
+  15- 22 *                               *
+  15- 23 *********************************
+  15- 25 EXPLANATION
+  15- 34 DEFAULT ASSIGNMENTS
+  16-  1 DETECT COIN
+  17-  1 MECH-MULTIPLIERS
+  18-  1 BONUS-ADDER
+  19-  1 COINS TO CREDITS
+  19- 30 ELECTRO-MECH. CTRS
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 1
+
+
+     1                                  .TITLE ALCOIN - ALIENE COIN ROUTINE
+     2
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 15
+VARIABLES - PAGE 1
+
+
+     3
+     4
+     5
+     6         0010                             .RADIX  16
+     7         0001                     BONADD=1
+     8         0000                     CNTINT=0
+     9         0000                     COIN=0
+    10         0001                     COIN01=1
+    11         0000                     SLAM=0
+    12         0001                     INCLUDE=1
+    13
+    14
+    15         0000'                            .CSECT
+    16+                                         .INCLUDE COIN65
+    17+                                 .SBTTL COIN65 - 650X "UNIVERSAL" COIN ROUTINE
+    18+                                         .SBTTL *********************************
+    19+                                         .SBTTL * PROGRAMERS: DOWNEND & ALBAUGH *
+    20+                                         .SBTTL *                               *
+    21+                                         .SBTTL * CHECKER:                      *
+    22+                                         .SBTTL *                               *
+    23+                                         .SBTTL *********************************
+    24+
+    25+                                         .SBTTL EXPLANATION
+    26+        0010                             .RAD=10
+    27+        0010                             .RADIX 16
+    28+                                         .ENABL LC
+    29+                                         .LIST MEB
+    30+                                 ;THIS IS A MAJOR REVISION OF THE COIN ROUTINE DERIVED FROM PENNY.
+    31+                                 ;ALL NEW PROGRAMS SHOULD USE THIS ROUTINE.  OLD PROGRAMS CAN CONTINUE
+    32+                                 ;TO USE PENNY, BUT NO FURTHER OPTIONS WILL BE SUPPORTED IN PENNY.
+    33+                                 ;REVISED 7/80 TO SUPPORT BONUS-ADDER
+    34+                                         .SBTTL DEFAULT ASSIGNMENTS
+    35+                                         .LIST CND
+    36+                                         .IIF NDF,FTEST,FTEST=0		;NOT FIELD TEST
+    37+                                         .IIF NDF,MODES,MODES=4          ;FOUR COIN MODES STANDARD
+    38+                                                                         ;ALTERNATE IS MODES=0
+    39+                                         .IIF NDF,MECHS,MECHS=3		;# OF MECHS (1,2 OR 3)
+    40+                                         .IIF NDF,INCLUDE,INCLUDE=0	;NOT ".INCLUDE"'D
+    41+                                 ;IF "INCLUDE=1",THE ".END" IS SUPPRESSED
+    42+                                         .IIF NDF,RTS,RTS=1		;EXIT VIA RTS
+    43+                                 ;IF RTS=0,EXITS BY FALLING OUT
+    44+                                         .IIF NDF,BONADD,BONADD=0	;DO NOT BONUS-ADDER,BONADD=1 TO DO BONUS ADDER
+    45+          01                             .IF EQ,MECHS-3                  ;DEFAULTS FOR MECHS=3
+    46+                                         .IIF NDF,MULTS,MULTS=1   		;IMPLEMENT H.DELMAN STANDARD MULTIPLIERS
+    47+                                                                                 ;(SEE GHM,GDM BELOW)
+    48+                                         .IIF NDF,EMCTRS,EMCTRS=3         	;3 ELECTRO-MECH COUNTERS
+    49+                                         .IIF NDF,OFFSET,OFFSET=1		;OFFSET BY 1
+    50+          01                             .ENDC                           ;EQ,MECHS-3
+    51+
+    52+          01                             .IF EQ,MECHS-2                  ;DEFAULTS FOR MECHS=2
+    53+                                         .IIF NDF,MULTS,MULTS=0	   		;MULTIPLIERS DO NOT APPLY
+    54+                                         .IIF NDF,EMCTRS,EMCTRS=0	   	;NO E.M. COUNTERS
+    55+                                         .IIF NDF,OFFSET,OFFSET=2	   	;SWITCHES AND STATUS BYTES TWO-APART
+    56+          01                             .ENDC                           ;EQ, MECHS-2
+    57+
+    58+          01                             .IF EQ,MECHS-1                  ;DEFAULTS FOR MECHS=1
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 15+
+DEFAULT ASSIGNMENTS
+
+    59+                                         .IIF NDF,MULTS,MULTS=1			;H. DELMAN STD. MULTS
+    60+                                         .IIF NDF,EMCTRS,EMCTRS=1		;1 COUNTER
+    61+                                         .IIF NDF,OFFSET,OFFSET=1		;OFFSET FOR COUNTERS
+    62+          01                             .ENDC                           ;EQ,MECHS-1
+    63+
+    64+                                         .IIF NDF,SEPCCT,SEPCCT=0	;DO NOT IMPLEMENT SEPARATE $CNCT'S
+    65+                                 ;USE SEPCCT=1 ONLY FOR WIERD,NON-STANDARD MECH-MULTIPLIERS
+    66+                                         .IIF NDF,COIN,COIN=0            ;COIN IS LOW-TRUE
+    67+                                         .IIF NDF,CNTINT,CNTINT=1        ;COUNT INTERRUPTS (IN $INTCT)
+    68+                                         .IIF NDF,SLAM,SLAM=1            ;SLAM IS HIGH-TRUE
+    69+                                         .IIF NDF,CMZP,CMZP=1            ;COIN MODE IS IN ZERO-PAGE
+    70+                                 ;D0,D1=0,1,2,3 FOR FREE, 2 PLAY/COIN, 1 PLAY/COIN,2 COIN/PLAY
+    71+                                 ;D2,D3=0,1,2,3 FOR 1,4,5,6 "UNITS"/RIGHT COIN
+    72+                                 ;D4=0,1 FOR 1,2 "UNITS"/MIDDLE COIN
+    73+                                 ;ONLY D2,3,4 USED IF MODES=0
+    74+                                         .IIF NDF,COIN67,COIN67=0        ;COINS NOT IN D7,D6 OF SAME BYTE
+    75+                                         .IIF NDF,COIN01,COIN01=0	;COINS NOT IN D0,D1 EITHER
+    76+                                         .IIF NDF,PRST,PRST=30.          ;PRE-COIN SLAM KILLS COINS FOR 30 FRAMES
+    77+                                         .IIF NDF,POST,POST=30.          ;POST-COIN SLAM KILLS COINS WITHIN 30 FRAMES
+    78+          01                             .IF NE,<EMCTRS>*<EMCTRS-1>*<EMCTRS-3>*<EMCTRS-4>
+    79+                                         .ERROR          ;NONE,ONE,THREE, OR FOUR E.M.CTRS ONLY
+    80+          01                             .ENDC
+    81+          01                             .IF NE,FTEST
+    82+                                         CCTRS   =1			;FIELD TEST, 1 COIN COUNTER
+    83+          01                             .IFF
+    84+        0003                             CCTRS   =EMCTRS                 ;NORMALLY
+    85+          01                             .ENDC
+    86+          01                             .IF NE,CMZP
+    87+                                 ;IF YOU USE CMZP=0, DEFINE EQUIVALENT MACROS
+    88+                                 ;(GCM NOT NEEDED IF MODES=0)
+    89+                                         .MACRO GCM
+    90+                                 ;ACC0,ACC1:=COIN OPTION ACC 2-7=0,Z-FLAG SET PER ACC  CARRY IS DON'T CARE.
+    91+                                         LDA Z,$CMODE                    ;GET COIN MODE FROM ZERO-PAGE
+    92+                                         .IF NE,MULTS
+    93+                                         AND I,3                         ;ISOLATE COINS-CREDITS OPTION
+    94+                                         .ENDC                           ;NE,MULTS
+    95+                                         .ENDM
+    96+
+    97+                                 ;GHM, GDM NOT NEEDED IF MULTS=0
+    98+                                         .MACRO GHM
+    99+                                 ;ACC=0 FOR 1 "UNIT" ,<>0 FOR 2 "UNITS" PER MIDDLE-MECH COIN.
+   100+                                 ;  Z FLAG SET PER ACC.  CARRY IS DON'T CARE
+   101+                                         LDA Z,$CMODE                    ;GET COIN MODE FROM ZERO-PAGE
+   102+                                         AND I,10                        ;ISOLATE HALF-MULTIPLIER
+   103+                                         .ENDM
+   104+
+   105+                                         .MACRO GDM
+   106+                                 ;ACC=0,1,2,3 FOR 1,4,5,6 "UNITS" PER RIGHT-MECH COIN.  CARRY CLEAR.  Z-FLAG SET PER ACC
+   107+                                         LDA Z,$CMODE
+   108+                                         AND I,0C
+   109+                                         LSR
+   110+                                         LSR
+   111+                                         .ENDM
+   112+          01                             .ENDC                   ;NE,CMZP
+   113+                                         .MACRO GBAM
+   114+                                 ;ACC= 0,1,2,3,4,5,6,7 FOR BONUS-ADDER MODE
+   115+                                         LDA Z,$CMODE
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 15+
+DEFAULT ASSIGNMENTS
+
+   116+                                         LSR
+   117+                                         LSR
+   118+                                         LSR
+   119+                                         LSR
+   120+                                         LSR                     ;ISOLATE BONUS-ADDER MODE IN BITS 0-2
+   121+                                         .ENDM
+   122+                                         .NLIST CND
+   123+                                         .NLIST CND
+   124+                                 ;ENTRY POINT
+   125+                                         .GLOBL MOOLAH
+   126+                                 ;
+   127+                                 ;EXTERNAL REFERENCES
+   129+                                         .GLOBL $BCCNT
+   130+                                         .GLOBL $BC
+   134+                                         .GLOBL $CMODE                   ;INPUT COIN MODE
+   137+                                         .GLOBL $COINA,$LAM              ;SWITCH LOCATIONS (COIN & SLAM)
+   138+                                         .GLOBL $LMBIT                   ;MASK WITH 1 IN BIT WHERE SLAM SW. IS
+   139+                                         .GLOBL $CNSTT,$PSTSL            ;INTERNAL LOCATIONS
+   140+                                         .GLOBL $INTCT                   ;INTERRUPT COUNTER
+   141+                                         .GLOBL $LMTIM,$CNCT             ;SLAM-TIMER, COINCOUNT
+   143+                                         .GLOBL $$CRDT                   ;RESULT OF ALL THIS
+   146+                                         .GLOBL $CCTIM                   ;COIN-COUNTER TIMER BYTE(S)
+   165+                                 ;        The coin routine assumes the presence of the following .GLOBL variables:
+   167+        0000                             .REPT 0
+   168+                                 $BCCNT: ONE BASE PAGE BYTE USED TO COUNT COINS TOWARDS
+   169+                                         BONUS COINS. IT MUST BE INITIALIZED TO ZERO ON
+   170+                                         POWER-ON. IT MUST ALSO BE INITIALIZED TO ZERO
+   171+                                         WHEN A START-BUTTON IA PUSHED.
+   172+                                 $BC:    ONE BASE-PAGE BYTE USED TO
+   173+                                         HOLD ACTUAL BONUS COINS ACCRUED.
+   174+                                         INITIALIZE TO ZERO AT POWER-ON
+   175+                                         AND EACH TIME A START BUTTON IS
+   176+                                         PUSED.***CLEAR $BCCNT, THEN & BC.
+   177+                                         .ENDR
+   180+        0000                             .REPT 0
+   181+                                 $$CRDT:   Base page byte initialized to 0 on restart.  This is where accrued  credit
+   182+                                         is  kept.   Should  be  decremented  for each player-start.  Note that a DECREMENT
+   183+                                         instruction must be used to insure  mutual  exclusion  between  the  main  program
+   184+                                         accessing  $$CRDT  and  the  interrupt-driven coin routine accessing $$CRDT".  Not
+   185+                                         used if MODES=0
+   186+                                         .ENDR
+   189+        0000                             .REPT 0
+   190+                                         .IIF NDF,SEPCCT,SEPCCT=0        ;DO NOT IMPLEMENT SEPARATE $CNCT'S
+   191+                                 $CMODE:   Base page byte that contains the coin option  switches  in  its  low-order
+   192+                                         bits  (high true).  You must put them there.  This is not used if flag CMZP=0.
+   193+                                         See bit definitions in DEFAULT ASSIGNMENTS, and Macro definitions GCM,GHM,GDM.
+   194+                                         .ENDR
+   196+        0000                             .REPT 0
+   197+                                 $CNSTT:   "MECHS" base page bytes ($CNSTT, $CNSTT+OFFSET,$CNSTT+2*OFFSET) which should be
+   198+                                         initialized to 00 (the timers for coin detection).
+   199+                                 $COINA:   "MECHS" locations containing coin switches in D7. Left mech is at  $COINA,  Right
+   200+                                         mech is  at  $COINA+(2*OFFSET). If COIN67=1, Switches  are  all in $COINA, D7-Right,
+   201+                                         D6-Mid, D5-Left. If Coin01=1, D0-Right, D1-MId, D2-Left.
+   202+                                         .ENDR
+   210+        0000                             .REPT 0
+   211+                                 $CNCT:    Base page byte which must be initialized to zero on pwron. This is used to count
+   212+                                         coins for program (As distinct from $CCTIM, below).
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 15+
+DEFAULT ASSIGNMENTS
+
+   213+                                         .ENDR
+   215+        0000                             .REPT 0
+   216+                                 $PSTSL:   "MECHS" base page bytes  ($PSTSL, $PSTSL+OFFSET,$PSTSL+(2*OFFSET)used to
+   217+                                         time post-coin slam.
+   218+                                 $LAM:     Address of the SLAM switch.  The bit position inside $LAM is specified  by
+   219+                                        $LMBIT (see below)
+   220+                                 $LMBIT:  Mask used to select which bit in the slam switch  byte  should  be  tested
+   221+                                         (used as I,$LMBIT).  NOT A LOCATION, JUST A VALUE!!
+   222+                                 $LMTIM:   Base  page  byte  used  as  a  timer  for  pre-slam  protection.   May  be
+   223+                                         initialized  to  0FF  at  pwron  to  disallow  coin input for 4 seconds.  Coins are
+   224+                                         disallowed for two frames anyway.  This will be non-zero if SLAM was
+   225+                                         true within PRST*4 frames.
+   226+                                 $INTCT:  Interrupt counter for  long  string-timer.   If  CNTINT=1,  this  will  be
+   227+                                         incremented  (default  case).   If CNTINT=0, this should be equated to an existing
+   228+                                         counter.
+   229+                                 $CCTIM:  Timers(s) for pulses output to electro-mechanical counters, if EMCTRS > 0.
+   230+                                         Sign of $CCTIM(X) set if assoc. coin counter should be turned on, cleared
+   231+                                         for off. If 3 used, they are Left @ $CCTIM, Mid @ $CCTIM+OFFSET,
+   232+                                         Right @ $CCTIM+(2*OFFSET)
+   233+                                 Space requirements:
+   234+                                                 RAM: 3+CMZP+2*MECHS+EMCTRS (13. TYPICAL)
+   235+                                                 ROM: About 200. bytes
+   236+                                 The coin routine also assumes it will be called 4 times  a  frame,  where  one  frame=1/60
+   237+                                 second.   In  most  cases  this may be accomplished by making the coin routine part of the
+   238+                                 interrupt routine.
+   239+                                         .ENDR
+   255+        0000                             .REPT 0
+   256+                                 SAMPLE BASE PAGE ALLOCATION: (WHERE OFFSET=1,MODES=4)
+   257+                                         $BCCNT: .BLKB 1         ;COUNT TOWARDS BONUS COIN
+   258+                                         $BC:    .BLKB 1         ;BONUS COINS
+   259+                                         $CCTIM: .BLKB EMCTRS    ;E.M. COUNTER TIMERS (-FOR ON)
+   260+                                         $$CRDT: .BLKB 1         ;CREDIT TOTAL
+   261+                                         $CNCT:  .BLKB 1         ;"UNIT-COIN" COUNT
+   262+                                         $PSTSL: .BLKB MECHS     ;POST-COIN SLAM TIMERS
+   263+                                         $CNSTT: .BLKB MECHS     ;COIN-STATUS/TIMER
+   264+                                         $LMTIM: .BLKB 1         ;PRE-COIN SLAM TIMER
+   265+                                         $CMODE: .BLKB 1         ;COIN MODE
+   266+                                         .ENDR
+   269+        0000                             .REPT 0
+   270+                                 THE COIN MODES ARE:
+   271+                                   0:    FREE PLAY- $CNCT is zeroed, $$CRDT is not changed
+   272+                                   1:    2 PLAYS PER COIN
+   273+                                   2:    1 PLAY PER COIN
+   274+                                   3:    2 COINS PER PLAY
+   275+                                         .ENDR
+   277+        0000                             .REPT 0
+   278+                                                    *** COIN DETECTION ***
+   279+                                 Coin detection, courtesy of Mike Albaugh, uses two counters in one  byte  ($CNSTT).   This
+   280+                                 byte  is  used to remember the condition of the coin switch.  The upper counter (D7,D6,D5)
+   281+                                 runs when the coin is absent and is reset when the coin is  present.   The  lower  counter
+   282+                                 (D4-D0)  runs  when  the  coin is present and is reset when the coin is absent, unless the
+   283+                                 coin was present for 5 successive samples.  This "unless"  enables  $CNSTT  to  "remember"
+   284+                                 that a coin has been VALID-HIGH while waiting for VALID-LOW.
+   285+                                 Basically, a valid coin is defined as between 16 and 800 ms of coin present, preceded  and
+   286+                                 followed  by  33 ms of coin absent.  The 33 ms lows need not immediately precede or follow
+   287+                                 the high.  The lower five bits count  down  from  31  when  the  coin  is  present.   This
+   288+                                 countdown  is  fast  (once  per  interupt)  for the first five samples (31-26, about 16-20
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 15+
+DEFAULT ASSIGNMENTS
+
+   289+                                 milliseconds) then slow (once per EIGHT interrupts) for the remaining counts (26-0,  about
+   290+                                 800  ms).   The  count  then  stops  at zero.  This counter is reset if the coin goes away
+   291+                                 during the first five counts, I.E., the coin must be present for at least  16  ms.   After
+   292+                                 that  the coin must go away for eight counts to reset it.  This is because after the first
+   293+                                 five counts a coin is VALID HIGH and must not be reset until VALID LOW occurs  to  prevent
+   294+                                 mid-coin glitches from making a valid coin into 0 or 2 (or more) coins.
+   295+
+   296+                                 The upper three bits count up from zero when the coin is absent.  The count  is  reset  if
+   297+                                 coin  is  ever  found  present.   When  the  count  finally wraps (8 samples, 33 ms).  The
+   298+                                 coin-present counter is checked.  A count from 27-31 (less than 16-20 ms) is too short.  A
+   299+                                 count of 0 (more than 800 ms) is too long.  Both of these cases are simply reset to 31.  A
+   300+                                 count of 1-26 is a (tentatively) valid coin.  The counter is again set to 31, but  another
+   301+                                 counter ($PSTSL) is started.
+   302+
+   303+                                 $PSTSL is the POST-COIN-SLAM timer.  Initially  set  to  120,  it  counts  down  once  per
+   304+                                 interrupt  (4  times per frame) to give a nominal 1/2 second delay.  If the slam switch is
+   305+                                 seen during this time, $PSTSL is cleared, invalidating the coin.  The length of the  delay
+   306+                                 (in  frames)  is  defined by POST which defaults to 30.  It may be set as high as 63 (1.05
+   307+                                 seconds) by definition E.G.
+   308+
+   309+                                         POST=50         ;POST-SLAM=50 FRAMES
+   310+
+   311+                                 SIMILARY A SLAM IS "REMEMBERED" FOR PRST frames (default=30, max=31) and no  coin  can  be
+   312+                                 "seen" during this time.
+   313+
+   314+                                 Note that the proper initial  state  of  all  these  counters  etc  is  0,  therefore  the
+   315+                                 traditional power-on clear does the trick.  Since coins "transit" from $CNSTT to $PSTSL to
+   316+                                 $CNCT to $$CRDT, locations should be cleared in that order, I.E.   $$CRDT  should  be  the
+   317+                                 last location cleared. ($$CRDT, of course, exists only if MODES=4)
+   318+                                         .ENDR
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 16
+DETECT COIN
+
+     1+                                         .SBTTL DETECT COIN
+     2+                                 ;INSTRUCTIONS IN BRACKETS( "[" AND "]" ) ARE FOR ILLUSTRATION ONLY, AND ARE NOT
+     3+                                 ;ACTUALLY ASSEMBLED.
+     4+  0000                           MOOLAH:
+    14+  0000    A2    02                       LDX I,OFFSET*<MECHS-1>  ;X IS USED TO INDEX FROM RIGHT TO LEFT COIN MECH
+    19+  0002    AD  0008               $DETCT: LDA A,$COINA            ;GET COIN SWITCHES
+    20+  0005    E0    01                       CPX I,OFFSET            ;WHICH MECH ARE WE DOING
+    21+  0007    F0    03                       BEQ 11$                 ;MIDDLE (X=OFFSET) SHIFT TWICE
+    22+  0009    B0    02                       BCS 12$                 ;RIGHT (X=2*OFFSET) SHIFT ONCE
+    24+  000B    4A                             LSR                     ;ELSE LEFT, SHIFT THRICE
+    25+  000C    4A                     11$:    LSR
+    26+  000D    4A                     12$:    LSR
+    33+  000E    B5    0D                       LDA ZX,$CNSTT
+    35+  0010    29    1F                       AND I,31.               ;SHARED INST. SEE BELOW IN BRACKETS []
+    37+  0012    B0    37                       BCS 5$                  ;BRANCH IF INPUT HIGH (COIN ABSENT)
+    41+                                 ;       [AND I,31.]             ISOLATE COIN-ON DOWN-COUNTER, RESET COIN-OFF UP-CTR.
+    42+  0014    F0    10                       BEQ 1$                  ;STICK AT 0 (TERMINAL COUNT)
+    43+  0016    C9    1B                       CMP I,27.               ;IN FIRST FIVE SAMPLES?
+    44+  0018    B0    0A                       BCS 10$                 ;YES, RUN FAST
+    45+  001A    A8                             TAY                     ;ELSE SAVE STATUS
+    46+  001B    A5    07                       LDA Z,$INTCT            ;CHECK INTERUPT CTR
+    47+  001D    29    07                       AND I,7                 ;ARE D0-D2 ALL ONES?
+    48+  001F    C9    07                       CMP I,7                 ;SET CARRY IF SO
+    49+  0021    98                             TYA                     ;STATUS BACK INTO ACC
+    50+  0022    90    02                       BCC 1$                  ;SKIP IF NOT ALL ONES
+    51+  0024    E9    01               10$:    SBC I,1                 ;CARRY SET
+    55+  0026    95    0D               1$:     STA ZX,$CNSTT           ;SAVE UPDATED STATUS
+    57+  0028    AD  0008                       LDA A,$LAM              ;CHECK SLAM SWITCH
+    58+  002B    29    08                       AND I,$LMBIT
+    62+  002D    D0    04                       BNE 2$                  ;BRANCH IF BIT HI (SWITCH OFF)
+    64+  002F    A9    F0                       LDA I,PRST*8            ;ELSE SET PRE-COIN SLAM TIMER
+    65+  0031    85    0C                       STA Z,$LMTIM            ;DECR. 8 TIMES/FRAME=PRST FRAMES
+    66+  0033    A5    0C               2$:     LDA Z,$LMTIM            ;CHECK PRE-COIN SLAM TIMER
+    67+  0035    F0    08                       BEQ 3$                  ;O.K.
+    68+  0037    C6    0C                       DEC Z,$LMTIM            ;ELSE RUN TIMER
+    69+  0039    A9    00                       LDA I,0
+    78+  003B    95    0D                       STA ZX,$CNSTT           ;CLEAR COIN STATUS
+    79+  003D    95    10                       STA ZX,$PSTSL           ;CLEAR POST-COIN SLAM-TIMER
+    80+  003F    18                     3$:     CLC                     ;DEFAULT "NO COIN DETECTED"
+    81+  0040    B5    10                       LDA ZX,$PSTSL           ;CHECK POST-COIN SLAM-TIMER
+    82+  0042    F0    23                       BEQ 8$                  ;EMPTY, PROCEED
+    83+  0044    D6    10                       DEC ZX,$PSTSL           ;RUN TIMER
+    85+  0046    D0    1F                       BNE 8$                  ;NOT DONE, PROCEED
+    86+  0048    38                             SEC                     ;WHEN IT BECOMES ZERO, INDICATE A COIN
+    87+  0049    B0    1C                       BCS 8$                  ;(ALWAYS)
+    88+
+    89+  004B                           5$:;    [AND I,31.]             GET COIN-ON DOWN-CTR (ACTUALLY DONE BEFORE)
+    90+  004B    C9    1B                       CMP I,27.               ;IS COIN VALID YET (ON FOR >4 SAMPLES)
+    91+  004D    B0    09                       BCS 6$                  ;NO, RESET IT
+    95+  004F    B5    0D                       LDA ZX,$CNSTT           ;GET STATUS AGAIN
+    97+  0051    69    20                       ADC I,32.               ;BUMP COIN-OFF UP-CTR.
+    98+  0053    90    D1                       BCC 1$                  ;IF IT DIDN'T WRAP, JUST STORE STATUS
+    99+  0055    F0    01                       BEQ 6$                  ;IT WRAPPED BUT COIN WAS ON TOO LONG, JUST RESET
+   100+  0057    18                             CLC                     ;SET "VALIDITY" AGAIN
+   101+  0058    A9    1F               6$:     LDA I,31.               ;RESET DOWN-COUNTER
+   102+  005A    B0    CA                       BCS 1$                  ;BRANCH IF COIN TOO LONG OR TOO SHORT
+   107+  005C    95    0D                       STA ZX,$CNSTT           ;SAVE RESET STATUS
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 16+
+DETECT COIN
+
+   108+                                 ;       [CLC]                   DEFAULT TO "NO COIN" (CARRY IS ALREADY CLEAR)
+   109+  005E    B5    10                       LDA ZX,$PSTSL           ;CHECK HOWIES ASSUMPTION
+   111+  0060    F0    01                       BEQ 7$                  ;BRANCH IF $PSTSL VACANT
+   112+  0062    38                             SEC                     ;ELSE GIVE CREDIT A LITTLE EARLY
+   113+  0063    A9    78               7$:     LDA I,POST*4            ;/(4 COUNTS/FRAME)="POST" FRAMES
+   117+  0065    95    10                       STA ZX,$PSTSL           ;DELAY ACCEPTANCE FOR POST/60 SEC.
+   119+
+   120+  0067                           8$:                             ;CARRY=1 IF COIN FALLS OUT
+   121+  0067    90    2A                       BCC 9$
+   123+                                 ;FALL THROUGH TO "MECH-MULTIPLIERS"
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 17
+MECH-MULTIPLIERS
+
+     1+                                         .SBTTL MECH-MULTIPLIERS
+     7+  0069    A9    00                       LDA I,0                 ;START WITH 0 (TO ADD 1)
+     8+  006B    E0    01                       CPX I,OFFSET            ;CHECK WHICH MECH
+     9+  006D    90    16                       BCC 85$                 ;IF LEFT, ALWAYS ADD 1
+    10+  006F    F0    0C                       BEQ 83$                 ;IF CENTER, CHECK HALF-MUL
+    12+  0071    A5    09    29    0C           GDM                     ;GET DOLLAR MUL
+         0075    4A    4A
+    13+  0077    F0    0C                       BEQ 85$                 ;00-ADD 1
+    14+  0079    69    02                       ADC I,2                 ;ELSE MAP 1,2,3 TO 3,4,5
+    16+  007B    D0    08                       BNE 85$                 ;(ALWAYS)
+    17+
+    18+  007D    A5    09    29    10   83$:    GHM
+    19+  0081    F0    02                       BEQ 85$
+    20+  0083    A9    01                       LDA I,1
+    22+  0085    38                     85$:    SEC
+    58+  0086    48                             PHA
+    59+  0087    65    16                       ADC Z,$BCCNT                    ;UPDATE BONUS-ADDER COUNTER
+    60+  0089    85    16                       STA Z,$BCCNT
+    61+  008B    68                             PLA
+    62+  008C    38                             SEC
+    64+  008D    65    17                       ADC $CNCT
+    65+  008F    85    17                       STA $CNCT
+   117+  0091    F6    13                       INC X,$CCTIM            ;"QUEUE" PULSE FOR E.M. COUNTER
+   120+  0093                           9$:
+   122+        0001                             .REPT OFFSET
+   123+                                         DEX
+   124+  0093    CA                             .ENDR
+   126+  0094    30    03                       BMI 120$
+   127+  0096    4C  0002'                      JMP $DETCT
+   128+  0099                           120$:
+   134+                                         ;FALL THRU TO BONUS-ADDER
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 18
+BONUS-ADDER
+
+     1+                                         .SBTTL BONUS-ADDER
+     2+  0099    A5    09    4A    4A   $BONUS: GBAM                    ;GET BONUS ADDER MODE
+         009D    4A    4A    4A
+     3+  00A0    A8                             TAY
+     4+  00A1    A5    16                       LDA Z,$BCCNT
+     5+  00A3    38                             SEC
+     6+  00A4    F9  00B5'                      SBC AY,$MODLO           ;SEE IF ENOUGH UNIT-COINS HAVE ACCUMULATED
+     7+  00A7    30    14                       BMI $EXTB               ;BRANCH IF NOT
+     8+  00A9    85    16                       STA Z,$BCCNT            ;ELSE UPDATE BONUS-ADDER AND...
+     9+  00AB    E6    18                       INC Z,$BC               ;GIVE ONE OR TWO BONUS UNIT-COINS
+    10+  00AD    C0    03                       CPY I,3
+    11+  00AF    D0    0C                       BNE $EXTB
+    12+  00B1    E6    18                       INC Z,$BC               ;MODE 3 YIELDS 2 BONUS COINS FOR 4 INSERTED
+    13+  00B3    D0    08                       BNE $EXTB               ;BRA
+    14+  00B5                           $MODLO:                         ;THIS IS THE NUMBER OF UNIT-COINS REQUIRED TO RECEIVE BONUS
+    15+  00B5    7F    02    04    04           .BYTE 7F,2,4,4,5,3,7F,7F        ;7F IS USED TO GENERATE ZERO BONUS COINS
+         00B9    05    03    7F    7F
+    16+  00BD                           $EXTB:
+    19+                                 ;FALL THROUGH TO CONVERT COINS TO CREDITS
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 19
+COINS TO CREDITS
+
+     1+                                         .SBTTL COINS TO CREDITS
+     2+  00BD    A5    09    29    03   $CNVRT: GCM             ;GET COIN MODE IN 0,1
+     3+  00C1    A8                             TAY                     ;SAVE IT
+     4+  00C2    F0    1A                       BEQ 2$                  ;IF FREE PLAY CMODE=0, DO NOTHING
+     5+  00C4    4A                             LSR                     ;ELSE FORM PRICE (0,1,1,2)
+     6+  00C5    69    00                       ADC I,0
+     7+  00C7    49    FF                       EOR I,0FF
+     8+  00C9    38                             SEC
+     9+  00CA    65    17                       ADC $CNCT               ;ACC <- COINCT-PRICE
+    12+  00CC    B0    08                       BCS 33$                 ;BRANCH IF NO BORROW
+    13+                                         ;[CLC]
+    14+  00CE    65    18                       ADC Z,$BC                       ;ADD IN BONUS COINS-SEE IF THEY HELP
+    15+  00D0    30    0E                       BMI $EXT                ;BRANCH IF COINCT+BONUS COINS <PRICE
+    16+  00D2    85    18                       STA Z,$BC                       ;ELSE ACC=UNUSED BONUS COINS
+    17+  00D4    A9    00                       LDA I,0                 ;ACC=NEW $CNCT
+    19+  00D6                           33$:                            ;GENERATE CREDITS: 1 OR 2
+    20+  00D6    C0    02                       CPY I,2                 ;Y=COIN MODE-COIN MODE 2 OR 3?
+    21+  00D8    B0    02                       BCS 1$                  ;BRANCH IF MODE 2 OR 3-GIVE 1 CREDIT
+    22+  00DA    E6    06                       INC $$CRDT              ;ELSE GIVE 2 FOR MODE 1
+    23+  00DC    E6    06               1$:     INC $$CRDT
+    24+  00DE    85    17               2$:     STA $CNCT               ;UPDAT COINCT
+    26+  00E0                           $EXT:
+    29+                                 ;FALL THROUGH TO HANDLE E.M. COUNTERS
+    30+                                         .SBTTL ELECTRO-MECH. CTRS
+    31+  00E0    A5    07                       LDA Z,$INTCT            ;GET $INTCT
+    32+  00E2    4A                             LSR                     ;USE LSB FOR PULSE=4 FRAMES
+    33+  00E3    B0    27                       BCS 99$
+    45+  00E5    A0    00                       LDY I,0                 ;START WITH FLAG OF 0
+    46+  00E7    A2    02                       LDX I,OFFSET*<EMCTRS-1>
+    47+  00E9    B5    13               1$:     LDA X,$CCTIM            ;CHECK TIMER(X)
+    48+  00EB    F0    09                       BEQ 3$                  ;NEITHER RUNNING NOR PENDING
+    49+  00ED    C9    10                       CMP I,10                ;IS IT RUNNING
+    50+  00EF    90    05                       BCC 3$                  ;NO, SKIP
+    51+  00F1    69    EF                       ADC I,0EF               ;ELSE DEC 4 MSB
+    52+  00F3    C8                             INY                     ;SET ON FLAG
+    53+  00F4    95    13               2$:     STA X,$CCTIM
+    54+  00F6                           3$:
+    55+        0001                             .REPT OFFSET
+    56+                                         DEX
+    57+  00F6    CA                             .ENDR
+    58+  00F7    10    F0                       BPL 1$
+    59+  00F9    98                             TYA                     ;CHECK "ON" FLAG
+    60+  00FA    D0    10                       BNE 99$                 ;SKIP IF ANY ON
+    61+                                 ;IF NONE OF THE COUNTERS ARE CURRENTLY ON, WE CHECK TO SEE IF ANY CAN BE
+    62+                                 ;STARTED.
+    63+  00FC    A2    02                       LDX I,OFFSET*<EMCTRS-1>
+    64+  00FE    B5    13               4$:     LDA X,$CCTIM            ;NEED WE START THIS ONE
+    65+  0100    F0    07                       BEQ 5$                  ;NO, NO COUNTS PENDING
+    66+  0102    18                             CLC
+    67+  0103    69    EF                       ADC I,0EF               ;SET 4 MSB, DEC 4 LSB
+    68+  0105    95    13                       STA X,$CCTIM            ;START TIMER
+    69+  0107    30    03                       BMI 99$                 ;EXIT, SO WE DON'T START MORE
+    70+  0109                           5$:
+    71+        0001                             .REPT OFFSET
+    72+                                         DEX
+    73+  0109    CA                             .ENDR
+    74+  010A    10    F2                       BPL 4$
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 19+
+ELECTRO-MECH. CTRS
+
+    76+  010C                           99$:
+    78+  010C    60                             RTS
+    80+        0010                             .RADIX .RAD             ;RESTORE RADIX
+    81+
+    83
+    84         0001'                            .END
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 19+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		AUDCTL= 60C8   		AUDC1 = 60C1
+AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8   		BFACTR  0078
+BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007   		BOFLAS  0124
+BONADD= 0001   		BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D
+BOOMTI  010E   		BUFACT  0415   		BUFRDY  0054   		CAMPC   010B   		CAMSTA  010C
+CBOOM = 0024   		CBUF1 = 0078   		CCTRS = 0003   		CDBOOM= 0004   		CDBOXP= 0012
+CDGETI= 0006   		CDGOVR= 000C   		CDHITB= 000A   		CDLADR= 0014   		CDLOGP= 0014
+CDPLAY= 0000   		CDPLPL= 000E   		CDPRST= 0010   		CDREQR= 0008   		CDROP = 0020
+CDSYST= 0002   		CD2GAM= 0016   		CENDGA= 0008   		CENDLI= 0006   		CENDWA= 000E
+CGETIN= 0012   		CHACHA  00A7   		CHACOU  0135   		CHAINV  00A8   		CHARCO  02F2
+CHARL1  02AD   		CHARL2  02C0   		CHARY   02D3   		CHARYL  02E6   		CHISCH= 0010
+CINIRA= 001C   		CLOGO = 001A   		CMZP  = 0001   		CNEWAV= 000C   		CNEWGA= 0000
+CNEWLI= 0002   		CNEWV2= 0018   		CNOTFO= 0014   		CNTINT= 0000   		CNWLF2= 001E
+COCKTA= 0010   		COCTAL  0117   		COIN  = 0000   		COIN01= 0001   		COIN67= 0000
+COLOR   009E   		COLPOR= 0800   		COLRAM  0019   		CPAUSE= 000A   		CPLAY = 0004
+CREQRA= 0016   		CSYSTM= 0022   		CURCOL= 0001   		CURMOD  0106   		CURNTX  006A
+CURNTY  006C   		CURSL1  0200   		CURSL2  0201   		CURSPO  0051   		CURSVH  0105
+CURSVL  0104   		CURSY   0202   		CURSYL  0107   		CURWAV  009F   		DBSW    004C
+DEPCOL= 0006   		EACTL = 6040   		EADAL = 6000   		EAIN  = 6050   		ELICNT  0123
+EMCTRS= 0003   		ENSIZE  0151   		ESHCOU  00A6   		EXICAM  010A   		EXL     005E
+EXPCOL= 0000   		EXPCOU  0116   		EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302
+EXPLOY  030A   		EYEFAC  0065   		EYH     005B   		EYL     005F   		EYLDES  005D
+EYLL    005C   		EZL     0060   		FARY    014E   		FBLUE = 000B   		FGREEN= 0007
+FLASH = 000F   		FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142   		FRED  = 000C
+FRTIMR  0053   		FTEST = 0000   		FUSECO  0146   		GAMOP1  071E   		GAMOP3  071F
+GREEN = 0005   		HARDWA= 6000   		HIRATE  0127   		HIWAVE  0126   		HRANKH= 0620
+HRANKL  061E   		HRANKM= 061F   		HRED  = 000D   		HSCORH= 0708   		HSCORL= 0706
+HSCORM= 0707   		ICHCOL= 0000   		ILINDD= 00F0   		ILINLI= 0010   		INCCOU  0109
+INCLUD= 0001   		INDEX1  0037   		INDEX2  0038   		INDEX3  0039   		INDEX4  003A
+INDYHI  003C   		INDYLO  003B   		ININDX  0604   		INITAL  0606   		INMCOU  0108
+INOP0 = 0D00   		INOP1 = 0E00   		INPUT   004A   		INTACK= 5000   		INTENS  0098
+INTIME  0128   		INVABI= 0007   		INVACT  02A6   		INVAC1  0283   		INVAC2  028A
+INVAL1  02B9   		INVAL2  02CC   		INVAY   02DF   		INVAYL  029F   		INVCAM  0291
+INVCAR= 0003   		INVCOL= 0003   		INVDIR= 0080   		INVFIR= 0040   		INVLOO  0298
+INVMOT= 0080   		INVROT= 0040   		INVSEQ= 0018   		IN1   = 0C00   		LEDOFF= 0003
+LEFSID  007B   		LETCOL= 0005   		LEVELY  010F   		LIFSXH  035A   		LIFSXL  036A
+LIFSZH  037A   		LIFSZL  038A   		LINANG  03EE   		LINEX   03CE   		LINEXM  0435
+LINEY   03AC   		LINEZ   03DE   		LINEZM  0445   		LINSCA  0059   		LINSTA  039A
+LINSXH  031A   		LINSXL  032A   		LINSZH  033A   		LINSZL  034A   		LITRAL  00AC
+LIVES1  0048   		LIVES2  0049   		LSCORH  0042   		LSCORL  0040   		LSCORM  0041
+LVSGAM  0158   		MAH   = 6081   		MAL   = 6080   		MATRAC= 0080   		MBH   = 6083
+MBL   = 6082   		MBSTAR= 6080   		MCOINC= 0002   		MCOINL= 0004   		MCOINR= 0001
+MDITES= 0020   		MDYPL = 6098   		MECHS = 0003   		MEH   = 6085   		MEL   = 6084
+MFAKE = 0080   		MFH   = 6087   		MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004
+MGTMOD= 0040   		MHALT = 0040   		MLCCNT= 0004   		MLED1 = 0002   		MLED2 = 0001
+MMCCNT= 0002   		MNL   = 608C   		MODES = 0004   		MOOLAH  0000 RG		MOPTI4= 0020
+MOPT13= 0007   		MRCCNT= 0001   		MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040
+MSUZA = 0008   		MSZXD = 6094   		MTEMP   0031   		MTEST = 0010   		MULTS = 0001
+MVINVX= 0008   		MVINVY= 0010   		MXH   = 6089   		MXL   = 6088   		MXPH  = 6096
+MXPL  = 6095   		MYHIGH= 6070   		MYLOW = 6060   		MZHH  = 6090   		MZHL  = 608F
+MZLH  = 608E   		MZLL  = 608D   		M3KHTI= 0080   		NCHARG= 000C   		NEARY   014D
+NEOFLI  014F   		NEWAIT  00A3   		NEWPLA  003F   		NEXPLO= 0008   		NGAMES  0100
+NGAME0  040E   		NGAMIH  040D   		NGAMIL  040C   		NGAM2H  0410   		NGAM2L  040F
+NGAM20  0411   		NGAVGH  0413   		NGAVGL  0412   		NGAVGZ  0414   		NHISCO= 0008
+NICHAR= 0004   		NINVAD= 0007   		NLINES= 0010   		NNYMPH= 0040   		NPARTI= 0010
+NPCHAR= 0008   		NPLANE= 0008   		NPLAYR  0101   		NRANKS= 0063   		NROMS = 000C
+NUMPLA  003E   		NWNYMC  015B   		NWTELI  015A   		NYMCOL= 000C   		NYMCOU  03AB
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 19+
+SYMBOL TABLE
+
+NYMPL   0203   		NYMPY   0243   		OBJIND  0055   		OCURSL  00A5   		OFFSET= 0001
+OFRTIM  00A4   		OLDLHI  00AB   		OLDLLO  00AA   		OLOFLI  0150   		OM2GAM= 0001
+OPFLIP  013D   		OPFUSE  0141   		OPPULS  013E   		OPSPIN  0140   		OPTANK  013F
+OPTIN1  0009   		OPTIN2  000A   		OPTIN3  016A   		OTB     0052   		OUTANK= 60E0
+OUT0  = 4000   		PARLIX  0203   		PARLIY  0223   		PARLIZ  0243   		PARLXA= 0020
+PARLXV  02C3   		PARLYA= 0020   		PARLYV  02E3   		PARLZA= 0020   		PARLZV  0303
+PARTIX  0263   		PARTIY  0283   		PARTIZ  02A3   		PARTXA= 0000   		PARTXV  0323
+PARTYA= 0000   		PARTYV  0343   		PARTZA= 0000   		PARTZV  0363   		PCHCOL= 0001
+PCVELO= 0009   		PDIRED= 000B   		PDIWHI= 0009   		PDIYEL= 000A   		PLAGRO  0115
+PLANEY  03FE   		PLAYUP  003D   		POKEY = 60C0   		POKEY2= 60D0   		POST  = 001E
+POTGO = 60CB   		POTGO2= 60DB   		PROG  = 9000   		PRST  = 001E   		PSCALE  016B
+PSHCTR= 0008   		PUCHDE  00B2   		PULPOT  0157   		PULSCO  0143   		PULSON  0148
+PULTIM  0147   		PULVEL= FEA0   		PURPLE= 0002   		PXL     0056   		PYL     0057
+PZL     0058   		QDSTAT  0001   		QFRAME  0003   		QNXTST  0002   		QSTATE  0000
+QSTATU  0005   		QTMPAU  0004   		QT1     00B5   		QT2     016C   		QT3     0455
+QT4     0720   		QT5     011F   		QT6     011B   		QUASEC= 0005   		RANDOM= 60CA
+RANDO2= 60DA   		RANKS   0600   		RED   = 0003   		RITSID  007C   		ROMSTA= 3000
+ROTDIS  0114   		ROTFLG  0113   		RSCORH  0045   		RSCORL  0043   		RSCORM  0044
+RTS   = 0001   		RUNGVG  00B0   		SAVEND  03CE   		SAVEP   03BC   		SAVEX   0035
+SAVEY   0036   		SCFL    0079   		SECOND= 0014   		SECOPH  040B   		SECOPL  0409
+SECOPM  040A   		SECOUH  0408   		SECOUL  0406   		SECOUM  0407   		SECUVG  00B6
+SECUVY  016E   		SEPCCT= 0000   		SKCTL = 60CF   		SKCTL2= 60DF   		SLAM  = 0000
+SPACG = 0000   		SPARE3  0133   		SPBINA  013A   		SPFTIM  013C   		SPINCO  0145
+SPLINE  0139   		SPOKST  0425   		SPXIND  013B   		SUBCOU  0099   		SUZCNT  03AA
+SUZTIM  0125   		SVGLIS  0076   		SWFINA  004E   		SWRELE  004F   		SWSTAT  004D
+SWSTRT  004D   		SXH     0062   		SXL     0061   		SYM   = 6092   		SZH     0064
+SZL     0063   		TANCOL= 0002   		TANKCO  0144   		TBHD    0050   		TBLIND  0602
+TCMFLG  00A2   		TEMPL   002A   		TEMPX   002E   		TEMPY   002F   		TEMPZ   0030
+TEMP0   0029   		TEMP1   002A   		TEMP2   002B   		TEMP3   002C   		TEMP4   002D
+TIMHIS  0605   		TNKOUT  00A1   		TOUT0   00B4   		TRACOL= 0005   		TSLAMR  000B
+TURQOI= 0004   		TYPCOD  015E   		UNITXH  009B   		UNITXL  009A   		UNITZH  009D
+UNITZL  009C   		VECRAM= 2000   		VGBRIT  0073   		VGLIST  0074   		VGSIZE  0072
+VGSTAR= 4800   		VGSTOP= 5800   		VGY     00A9   		WAVEN1  0046   		WAVEN2  0047
+WCHAMX  011A   		WCHARF  0119   		WCHARI  0118   		WCHARL  0120   		WELCOL= 0006
+WELLID  0112   		WELTYP  0111   		WFLICA  015D   		WFLMAX  012E   		WFLMIN  0129
+WFUFRQ  015F   		WFUMAX  0132   		WFUMIN  012D   		WFUSCH  0159   		WFUSIH= 0169
+WFUSIL= 0164   		WHITE = 0000   		WINVIL  0160   		WINVIN  0165   		WINVJM  011D
+WINVMX  011C   		WNYMMX  011E   		WPULCA  015C   		WPULFI  016D   		WPUMAX  012F
+WPUMIN  012A   		WSPMAX  0131   		WSPMIN  012C   		WTACAR  0149   		WTAMAX  0130
+WTAMIN  012B   		WTCHDG= 5000   		WTFMAX  0136   		WTTFRA  00B3   		XADJL   0066
+XCOMP   006E   		X0H     0080   		X0L     0078   		X1H     0081   		X1L     0079
+X2H     0082   		X2L     007A   		X3H     0083   		X3L     007B   		X4H     0084
+X4L     007C   		X5H     0085   		X5L     007D   		X6H     0086   		X6L     007E
+X7H     0087   		X7L     007F   		YCOMP = 0070   		YDEUNI  00A0   		YELLOW= 0001
+ZABFLI= 0000   		ZABFUS= 0004   		ZABPUL= 0001   		ZABTAN= 0002   		ZABTRA= 0003
+ZADEST  0121   		ZADJL   0068   		ZAPCOL= 0000   		ZBLACK= 000F   		ZBLUE = 000B
+ZCARFL= 0001   		ZCARFU= 0003   		ZCARNO= 0000   		ZCARPU= 0002   		ZDIRDO= 0080
+ZDIRUP= 0000   		ZFIRNO= 0000   		ZFIRYE= 0040   		ZGREEN= 0007   		ZMOTJM= 0080
+ZMOTMO= 0000   		ZPNLOC  00AE   		ZPOFFS  00AF   		ZPURPL= 0008   		ZRED  = 000C
+ZROCCW= 0040   		ZROTCW= 0000   		ZTURQO= 0003   		ZWHITE= 0000   		ZYELLO= 0004
+Z0H     0090   		Z0L     0088   		Z1H     0091   		Z1L     0089   		Z2H     0092
+Z2L     008A   		Z3H     0093   		Z3L     008B   		Z4H     0094   		Z4L     008C
+Z5H     0095   		Z5L     008D   		Z6H     0096   		Z6L     008E   		Z7H     0097
+Z7L     008F   		$BC     0018  G		$BCCNT  0016  G		$BONUS  0099 R 		$CCTIM  0013  G
+$CMODE  0009  G		$CNCT   0017  G		$CNSTT  000D  G		$CNVRT  00BD R 		$COINA  0008  G
+$DETCT  0002 R 		$EXT    00E0 R 		$EXTB   00BD R 		$INTCT  0007  G		$LAM    0008  G
+$LMBIT= 0008  G		$LMTIM  000C  G		$MODLO  00B5 R 		$PSTSL  0010  G		$TEST   0008
+ALCOIN - ALIENE COIN ROUTINE	ATARI MAC65 VM03.09  00:00:24 PAGE 19+
+SYMBOL TABLE
+
+$$CRDT  0006  G		.RAD  = 0010   		...X  = 0000
+. ABS.	0721	  00
+      	010D	  01
+ERRORS DETECTED: 0
+FREE CORE: 10862. WORDS
+
+OBJ:ALCOIN,OBJ:ALCOIN.LST=ALCOIN
+
+(OBJ:ALCOIN.OBJ,OBJ:ALCOIN.LST=DK1:ALCOIN)
+
+A TOTAL OF 2,003 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.1     I/O TIME -  00:00:00.0
+
+                                                                                                                                                                                                                                                                              

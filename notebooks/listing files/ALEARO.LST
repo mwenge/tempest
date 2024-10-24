@@ -1,0 +1,463 @@
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56
+TABLE OF CONTENTS
+
+   1-  2	**************************
+   1-  3	*			 *
+   1-  4	*MODULE-ALEARO		 *
+   1-  5	*PROGRAMMER:DAVE THEURER *
+   1-  6	*FUNCTION:ALIENS EAROM	 *
+   1-  7	*			 *
+   1-  8	**************************
+   1- 12 **************************************************
+   1- 13 *						*
+   1- 14 *MODULE:		ALCOMN				*
+   1- 15 *PROGRAMMER:	DAVE THEURER			*
+   1- 16 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 17 *		TO BE .INCLUDED IN:		*
+   1- 18 *		    ALGAME,ALDISP,ALHARD	*
+   1- 19 *						*
+   1- 20	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 21	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 22	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 23	STRICTLY PROHIBITED.
+   1- 24 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  15-  2	GLOBLS
+  15-  7	HARDWARE DEFINITIONS
+  16-  3	TABLE FOR RAM-EAROM TRANSFER
+  17-  1	EAROM APPLICATIONS
+  18-  1	EAROM IO MAINLINE
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 1
+
+
+     1                                  .TITLE  ALEARO-ALIENS EAROM
+     2                                          .SBTTL  **************************
+     3                                          .SBTTL  *                        *
+     4                                          .SBTTL  *MODULE-ALEARO           *
+     5                                          .SBTTL  *PROGRAMMER:DAVE THEURER *
+     6                                          .SBTTL  *FUNCTION:ALIENS EAROM   *
+     7                                          .SBTTL  *                        *
+     8                                          .SBTTL  **************************
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 15
+GLOBLS
+
+     2                                          .SBTTL  GLOBLS
+     3                                  ;ENTRY POINTS
+     4                                          .GLOBL EAUPD,EAZERO,REHIIN,WRHIIN,EAFLG,WRBOOK,EAZBOO,EAZHIS,EAREQU,EAZFLG
+     5                                  ;DATA
+     6                                          .GLOBL  EABAD
+     7                                          .SBTTL  HARDWARE DEFINITIONS
+     8                                                                  ;
+     9                                                                  ;EAROM HARDWARE DEFINITIONS
+    10                                                                  ;
+    11                                  ;EAIN				;HARDWARE READ PORT
+    12                                  ;EADAL				;BASE ADDRESS (STORE TO EADAL +OFFSET
+    13                                                                  ;TO ENABLE ADDRESS)
+    14                                  ;EACTL				;EA CONTROL BATCH;NOT C1,C2 FUNCTION
+    15                                                                  ;0 0 READ MODE
+    16                                                                  ;1 0 WRITE MODE
+    17                                                                  ;1 1 ERASE MODE
+    18         0001                     EACK    =1                      ;CLOCK BIT
+    19         0004                     EAC1    =4                      ;C1 (INVERTED TO CHIP)
+    20         0002                     EAC2    =2                      ;C2
+    21         0008                     EACE    =8                      ;CHIP SELECT
+    22         0721                             .ASECT                  ;PROGRAM RAM
+    23         01C6                             .=1C6                   ;
+    24   01C6                           EAZFLG: .BLKB 1         ;EA ROM ZERO FLAG (NOT 0=ZERO EAROM)
+    25
+    26   01C7                           EAREQU: .BLKB 1                 ;EA ROM ACCESS REQUEST
+    27                                                                  ;IF A BIT=0 THEN NO ACTION REQUESTED.
+    28                                                                  ;	 =1 THEN ACCESS THAT DATA.
+    29                                                                  ;D7 REPRESENTS 7TH BATCH OF DATA
+    30                                                                  ;D0 REPRESENTS 0TH BATCH OF DATA
+    31
+    32   01C8                           EARWRQ: .BLKB 1                 ;EA ROM ACCESS TYPE (MATCHES EAREQU)
+    33                                                                  ;IF BIT=0 THEN READ, ELSE WRITE
+    34                                                                  ;
+    35   01C9                           EABAD:  .BLKB 1                 ;EA ROM ACCESS SUCCESS(0) FAIL(1) (MATCHES EAREQU)
+    36                                                                  ;
+    37                                                                  ;EA CONTROL BYTES FOR 1 OPERATION
+    38                                                                  ;
+    39   01CA                           EAFLG:  .BLKB 1                 ;D7=1=ERASE	;=0=R/W
+    40                                                                  ;D6=1=WRITE	;D5=1=READ
+    41                                                                  ;D4=1=ZERO EAROM (IF D6=WRITE)
+    42         0080                     EAERAS  =80
+    43         0040                     EAWRIT  =40
+    44         0020                     EAREAD  =20
+    45                                                                  ;
+    46   01CB                           EABC:   .BLKB 1                 ;BYTE INDEX INTO ADDRESS AT EASRCE
+    47                                                                  ;
+    48   01CC                           EAX:    .BLKB 1                 ;BYTE OFFSET INTO EAROM FOR NEXT ACCESS
+    49                                                                  ;
+    50   01CD                           EACNT:  .BLKB 1                 ;BYTE OFFSET INTO EAROM FOR LAST ACCESS
+    51                                                                  ;
+    52   01CE                           EASEL:  .BLKB 1                 ;INDEX CODE FOR CURRENT BATCH OPERATION
+    53                                                                  ;
+    54   01CF                           EACS:   .BLKB 1                 ;CHECKSUM
+    55         00BD                             .=0BD
+    56   00BD                           EASRCE: .BLKB 2                 ;RAM POINTER
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 16
+HARDWARE DEFINITIONS
+
+     1
+     2         0000'                            .CSECT
+     3                                          .SBTTL  TABLE FOR RAM-EAROM TRANSFER
+     4                                  ;
+     5                                  ;EAROM ACCESS TABLES:OTH BYTE IN TABLE CORRESPONDS TO D0 IN EAREQU/EARWRQ
+     6                                  ;
+     7                                          .MACRO ROML ...A        ;INPUT ...A=BYTES OF DATA TO ACCESS
+     8                                          .BYTE ...RPC            ;OFFSET INTO EAROM OF LOWEST BYTE TO ACCESS
+     9                                  ...RPC=...RPC+...A
+    10                                          .BYTE ...RPC            ;OFFSET INTO EAROM OF HIGHEST BYTE TO ACCESS
+    11                                  ...RPC=...RPC+1
+    12                                          .ENDM                   ; (CHECKSUM)
+    13         0000                             ...RPC  =0
+    14
+    15   0000                           TEAX:                           ;EAROM OFFSET OF LOWEST BYTE IN GROUP
+    16         0001'                    TEACNT  =TEAX+1                 ;EAROM OFFSET OF HIGHEST BYTE IN GROUP (CHECKSUM)
+    17   0000    00    09                       ROML 9                  ;INITIALS
+    18   0002    0A    15                       ROML 11.                ;HI SCORES & GAME PLAY OPTIONS
+    19   0004    16    22                       ROML BOOKKE-BOOKKS      ;BOOKKEEPING
+    20   0006                           TEASRL:
+    21         0007'                    TEASRH  =TEASRL+1
+    22   0006  0615                             .WORD INITAL+15.
+    23   0008  0715                             .WORD HSCORL+15.
+    24   000A  0406                             .WORD BOOKKS
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 17
+EAROM APPLICATIONS
+
+     1                                          .SBTTL  EAROM APPLICATIONS
+     2
+     3                                                                  ;
+     4                                                                  ;ZERO EAROM
+     5                                                                  ;
+     6   000C                           EAZBOO:
+     7   000C    A9    04                       LDA I,04
+     8   000E    D0    06                       BNE GENZER              ;ZERO BOOKKEEPING ONLY
+     9   0010                           EAZHIS:
+    10   0010    A9    03                       LDA I,03
+    11   0012    D0    02                       BNE GENZER              ;ZERO HI SCORES/INITIALS ONLY
+    12   0014                           EAZERO:
+    13   0014    A9    07                       LDA I,07
+    14   0016    A0    FF               GENZER: LDY I,0FF               ;REQUEST ZERO EAROM
+    15   0018    D0    08                       BNE GENREQ              ;REQUEST ALL BATCHES
+    16                                                                  ;REQUEST WRITE
+    17
+    18                                                                  ;
+    19                                                                  ;
+    20   001A    A9    03               WRHIIN: LDA I,03                ;WRITE HIGH SCORES & INITIALS
+    21   001C    D0    02                       BNE NOZERO
+    22   001E    A9    04               WRBOOK: LDA I,04                ;REQUEST BOOKKEEPING UPDATE
+    23   0020    A0    00               NOZERO: LDY I,0
+    24   0022    8C  01C6               GENREQ: STY EAZFLG              ;DO NOT ZERO EAROM
+    25   0025    48                             PHA
+    26   0026    0D  01C7                       ORA EAREQU
+    27   0029    8D  01C7                       STA EAREQU
+    28   002C    68                             PLA
+    29   002D    0D  01C8                       ORA EARWRQ
+    30   0030    8D  01C8                       STA EARWRQ
+    31   0033    60                             RTS
+    32   0034    A9    07               REHIIN: LDA I,07                ;READ IN EVERYTHING
+    33   0036    8D  01C7                       STA EAREQU
+    34   0039    A9    00                       LDA I,0
+    35   003B    8D  01C8                       STA EARWRQ
+    36                                  ;	JMP EAUPD		;GO GET IT NOW.
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18
+EAROM IO MAINLINE
+
+     1                                          .SBTTL  EAROM IO MAINLINE
+     2                                  ;INPUT:EAFLG:0=NO ACTIVITY;80=ERASE;40=WRITE;20=READ
+     3                                  ;      EAX:INDEX INTO EADAL OF LOC TO ACCESS IN EAROM
+     4                                  ;      EABC:OFFSET FROM @EASRCE OF RAM DATA TO ACCESS
+     5                                  ;      EACNT:EAROM OFFSET OF LAST BYTE TO MODIFY (STOP WHEN EAX>EACNT)
+     6                                  ;
+     7                                  ;OUTPUT:EAROM ERASED, WRITTEN TOO, OR READ
+     8                                  ;
+     9   003E                           EAUPD:
+    10   003E    AD  01CA                       LDA EAFLG
+    11   0041    D0    00                       IFEQ                    ;EA ACTIVITY?
+    12   0043    AD  01C7                       LDA EAREQU              ;NO.
+    13   0046    F0    00                       IFNE                    ;ANY REQUESTED?
+    14   0048    A2    00                       LDX I,0                 ;YES
+    15   004A    8E  01CB                       STX EABC                ;ZERO SOURCE INDEX
+    16   004D    8E  01CF                       STX EACS                ;ZERO CHECKSUM
+    17   0050    8E  01CE                       STX EASEL               ;ZERO SELECT BIT
+    18   0053    A2    08                       LDX I,8
+    19   0055    38                             SEC
+    20                                          BEGIN                   ;LOOP UNTIL 1ST BIT ON LEFT IS FOUND
+    21   0056    6E  01CE                       ROR EASEL
+    22   0059    0A                             ASL
+    23   005A    CA                             DEX
+    24   005B    90    F9                       CSEND                   ;EXIT WHEN SET BIT IS FOUND
+    25   005D    A0    80                       LDY I,EAERAS            ;DEFAULT TO ERASE/WRITE
+    26   005F    AD  01CE                       LDA EASEL
+    27   0062    2D  01C8                       AND EARWRQ
+    28   0065    D0    00                       IFEQ                    ;READ OR ERASE/WRITE?
+    29   0067    A0    20                       LDY I,EAREAD            ;READ
+    30   0066    02                             ENDIF
+    31   0069    8C  01CA                       STY EAFLG               ;SAVE REQUEST
+    32   006C    AD  01CE                       LDA EASEL
+    33   006F    4D  01C7                       EOR EAREQU
+    34   0072    8D  01C7                       STA EAREQU              ;TURN OFF REQUEST BIT
+    35   0075    8A                             TXA
+    36   0076    0A                             ASL
+    37   0077    AA                             TAX
+    38   0078    BD  0000'                      LDA X,TEAX              ;SET UP PARAMETERS FOR EAROM WRITE
+    39   007B    8D  01CC                       STA EAX
+    40   007E    BD  0001'                      LDA X,TEACNT
+    41   0081    8D  01CD                       STA EACNT
+    42   0084    BD  0006'                      LDA X,TEASRL
+    43   0087    85    BD                       STA EASRCE
+    44   0089    BD  0007'                      LDA X,TEASRH
+    45   008C    85    BE                       STA EASRCE+1
+    46   0047    46                             ENDIF
+    47   0042    4B                             ENDIF
+    48   008E    A0    00                       LDY I,0                 ;DESELECT CHIP
+    49   0090    8C  6040                       STY EACTL
+    50   0093    AD  01CA                       LDA EAFLG
+    51   0096    D0    00                       IFEQ                    ;ANY ACTIVITY?
+    52   0098    60                             RTS                     ;NO. EXIT
+    53   0097    01                             ENDIF
+    54   0099    AC  01CB                       LDY EABC                ;YES.
+    55   009C    AE  01CC                       LDX EAX
+    56   009F    0A                             ASL
+    57   00A0    90    00                       IFCS                    ;YES. R/W OR ERASE?
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18+
+EAROM IO MAINLINE
+
+    58                                                                  ;ERASE
+    59   00A2    9D  6000                       STA X,EADAL             ;STORE ADDRESS
+    60   00A5    A9    40                       LDA I,EAWRIT            ;REQUEST WRITE
+    61   00A7    8D  01CA                       STA EAFLG
+    62   00AA    A0    0E                       LDY #EAC1+EAC2+EACE     ;ERASE & SELECT CHIP
+    63
+    64   00AC    B8    50    00                 ELSE
+         00A1    0D
+    65   00AF    10    00                       IFMI                    ;NO. READ OR WRITE?
+    66   00B1    A9    80                       LDA I,EAERAS            ;WRITE A BYTE
+    67   00B3    8D  01CA                       STA EAFLG               ;REQUEST ERASE FOR NEXT BYTE
+    68
+    69   00B6    AD  01C6                       LDA EAZFLG
+    70   00B9    F0    00                       IFNE                    ;ZERO EAROM?
+    71   00BB    A9    00                       LDA I,0                 ;YES.
+    72   00BD    91    BD                       STA NY,EASRCE           ;CLEAR RAM TOO
+    73   00BA    04                             ENDIF
+    74   00BF    B1    BD                       LDA NY,EASRCE           ;GET RAM DATA (DEFAULT)
+    75   00C1    EC  01CD                       CPX EACNT
+    76   00C4    90    00                       IFCS
+    77   00C6    A9    00                       LDA I,0                 ;ALL DONE. SET DONE FLAG
+    78   00C8    8D  01CA                       STA EAFLG
+    79   00CB    AD  01CF                       LDA EACS                ;GET CHECKSUM
+    80   00C5    08                             ENDIF
+    81   00CE    9D  6000                       STA X,EADAL             ;WRITE DATA
+    82   00D1    A0    0C                       LDY #EAC1+EACE          ;SELECT WRITE MODE & CHIP SELECT
+    83   00D3    B8    50    00                 ELSE
+         00B0    25
+    84                                                                  ;
+    85                                                                  ;READ
+    86   00D6    A9    08                       LDA #EACE
+    87   00D8    8D  6040                       STA EACTL               ;SELECT CHIP AND READ FUNCTION
+    88   00DB    9D  6000                       STA X,EADAL             ;SELECT ADDRESS
+    89   00DE    A9    09                       LDA #EACE+EACK          ;
+    90   00E0    8D  6040                       STA EACTL               ;SELECT CHIP & CLOCK & READ
+    91   00E3    EA                             NOP
+    92   00E4    A9    08                       LDA #EACE
+    93   00E6    8D  6040                       STA EACTL               ;SELECT CHIP
+    94   00E9    EC  01CD                       CPX EACNT
+    95   00EC    AD  6050                       LDA EAIN                ;READ EAROM
+    96   00EF    90    00                       IFCS                    ;CHECKSUM?
+    97                                                                  ;YES
+    98   00F1    4D  01CF                       EOR EACS                ;MATCH CHECKSUM?
+    99   00F4    F0    00                       IFNE                    ;
+   100   00F6    A9    00                       LDA I,0                 ;NO.
+   101   00F8    AC  01CB                       LDY EABC
+   102                                          BEGIN                   ;CLEAR BAD LOCS IN RAM
+   103   00FB    91    BD                       STA NY,EASRCE
+   104   00FD    88                             DEY
+   105   00FE    10    FB                       MIEND
+   106   0100    AD  01CE                       LDA EASEL               ;SET BAD FLAG
+   107   0103    0D  01C9                       ORA EABAD
+   108   0106    8D  01C9                       STA EABAD
+   109   00F5    13                             ENDIF
+   110   0109    A9    00                       LDA I,0
+   111   010B    8D  01CA                       STA EAFLG               ;ALL DONE
+   112   010E    B8    50    00                 ELSE
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18+
+EAROM IO MAINLINE
+
+         00F0    20
+   113                                                                  ;NO. RAW DATA
+   114   0111    91    BD                       STA NY,EASRCE           ;SAVE DATA IN RAM
+   115   0110    02                             ENDIF
+   116   0113    A0    00                       LDY I,0                 ;DESELECT
+   117   00D5    3F                             ENDIF
+   118   0115    18                             CLC
+   119   0116    6D  01CF                       ADC EACS
+   120   0119    8D  01CF                       STA EACS                ;UPDATE CHECKSUM
+   121   011C    EE  01CB                       INC EABC
+   122   011F    EE  01CC                       INC EAX
+   123   00AE    73                             ENDIF
+   124   0122    8C  6040                       STY EACTL
+   125   0125    98                             TYA
+   126   0126    D0    00                       IFEQ                    ;READ?
+   127   0128    4C  003E'                      JMP EAUPD               ;YES. DO ALL READS AT ONCE
+   128   0127    03                             ENDIF
+   129   012B    60                             RTS
+   130                                          HLL65
+   131         0001'                            .END
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		AUDCTL= 60C8   		AUDC1 = 60C1
+AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8   		BFACTR  0078
+BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007   		BOFLAS  0124
+BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D   		BOOMTI  010E
+BUFACT  0415   		BUFRDY  0054   		CAMPC   010B   		CAMSTA  010C   		CBOOM = 0024
+CBUF1 = 0078   		CDBOOM= 0004   		CDBOXP= 0012   		CDGETI= 0006   		CDGOVR= 000C
+CDHITB= 000A   		CDLADR= 0014   		CDLOGP= 0014   		CDPLAY= 0000   		CDPLPL= 000E
+CDPRST= 0010   		CDREQR= 0008   		CDROP = 0020   		CDSYST= 0002   		CD2GAM= 0016
+CENDGA= 0008   		CENDLI= 0006   		CENDWA= 000E   		CGETIN= 0012   		CHACHA  00A7
+CHACOU  0135   		CHAINV  00A8   		CHARCO  02F2   		CHARL1  02AD   		CHARL2  02C0
+CHARY   02D3   		CHARYL  02E6   		CHISCH= 0010   		CINIRA= 001C   		CLOGO = 001A
+CNEWAV= 000C   		CNEWGA= 0000   		CNEWLI= 0002   		CNEWV2= 0018   		CNOTFO= 0014
+CNWLF2= 001E   		COCKTA= 0010   		COCTAL  0117   		COLOR   009E   		COLPOR= 0800
+COLRAM  0019   		CPAUSE= 000A   		CPLAY = 0004   		CREQRA= 0016   		CSYSTM= 0022
+CURCOL= 0001   		CURMOD  0106   		CURNTX  006A   		CURNTY  006C   		CURSL1  0200
+CURSL2  0201   		CURSPO  0051   		CURSVH  0105   		CURSVL  0104   		CURSY   0202
+CURSYL  0107   		CURWAV  009F   		DBSW    004C   		DEPCOL= 0006   		EABAD   01C9  G
+EABC    01CB   		EACE  = 0008   		EACK  = 0001   		EACNT   01CD   		EACS    01CF
+EACTL = 6040   		EAC1  = 0004   		EAC2  = 0002   		EADAL = 6000   		EAERAS= 0080
+EAFLG   01CA  G		EAIN  = 6050   		EAREAD= 0020   		EAREQU  01C7  G		EARWRQ  01C8
+EASEL   01CE   		EASRCE  00BD   		EAUPD   003E RG		EAWRIT= 0040   		EAX     01CC
+EAZBOO  000C RG		EAZERO  0014 RG		EAZFLG  01C6  G		EAZHIS  0010 RG		ELICNT  0123
+EMCTRS= 0003   		ENSIZE  0151   		ESHCOU  00A6   		EXICAM  010A   		EXL     005E
+EXPCOL= 0000   		EXPCOU  0116   		EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302
+EXPLOY  030A   		EYEFAC  0065   		EYH     005B   		EYL     005F   		EYLDES  005D
+EYLL    005C   		EZL     0060   		FARY    014E   		FBLUE = 000B   		FGREEN= 0007
+FLASH = 000F   		FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142   		FRED  = 000C
+FRTIMR  0053   		FUSECO  0146   		GAMOP1  071E   		GAMOP3  071F   		GENREQ  0022 R
+GENZER  0016 R 		GREEN = 0005   		HARDWA= 6000   		HIRATE  0127   		HIWAVE  0126
+HRANKH= 0620   		HRANKL  061E   		HRANKM= 061F   		HRED  = 000D   		HSCORH= 0708
+HSCORL= 0706   		HSCORM= 0707   		ICHCOL= 0000   		ILINDD= 00F0   		ILINLI= 0010
+INCCOU  0109   		INDEX1  0037   		INDEX2  0038   		INDEX3  0039   		INDEX4  003A
+INDYHI  003C   		INDYLO  003B   		ININDX  0604   		INITAL  0606   		INMCOU  0108
+INOP0 = 0D00   		INOP1 = 0E00   		INPUT   004A   		INTACK= 5000   		INTENS  0098
+INTIME  0128   		INVABI= 0007   		INVACT  02A6   		INVAC1  0283   		INVAC2  028A
+INVAL1  02B9   		INVAL2  02CC   		INVAY   02DF   		INVAYL  029F   		INVCAM  0291
+INVCAR= 0003   		INVCOL= 0003   		INVDIR= 0080   		INVFIR= 0040   		INVLOO  0298
+INVMOT= 0080   		INVROT= 0040   		INVSEQ= 0018   		IN1   = 0C00   		LEDOFF= 0003
+LEFSID  007B   		LETCOL= 0005   		LEVELY  010F   		LIFSXH  035A   		LIFSXL  036A
+LIFSZH  037A   		LIFSZL  038A   		LINANG  03EE   		LINEX   03CE   		LINEXM  0435
+LINEY   03AC   		LINEZ   03DE   		LINEZM  0445   		LINSCA  0059   		LINSTA  039A
+LINSXH  031A   		LINSXL  032A   		LINSZH  033A   		LINSZL  034A   		LITRAL  00AC
+LIVES1  0048   		LIVES2  0049   		LSCORH  0042   		LSCORL  0040   		LSCORM  0041
+LVSGAM  0158   		MAH   = 6081   		MAL   = 6080   		MATRAC= 0080   		MBH   = 6083
+MBL   = 6082   		MBSTAR= 6080   		MCOINC= 0002   		MCOINL= 0004   		MCOINR= 0001
+MDITES= 0020   		MDYPL = 6098   		MECHS = 0003   		MEH   = 6085   		MEL   = 6084
+MFAKE = 0080   		MFH   = 6087   		MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004
+MGTMOD= 0040   		MHALT = 0040   		MLCCNT= 0004   		MLED1 = 0002   		MLED2 = 0001
+MMCCNT= 0002   		MNL   = 608C   		MOPTI4= 0020   		MOPT13= 0007   		MRCCNT= 0001
+MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040   		MSUZA = 0008   		MSZXD = 6094
+MTEMP   0031   		MTEST = 0010   		MVINVX= 0008   		MVINVY= 0010   		MXH   = 6089
+MXL   = 6088   		MXPH  = 6096   		MXPL  = 6095   		MYHIGH= 6070   		MYLOW = 6060
+MZHH  = 6090   		MZHL  = 608F   		MZLH  = 608E   		MZLL  = 608D   		M3KHTI= 0080
+NCHARG= 000C   		NEARY   014D   		NEOFLI  014F   		NEWAIT  00A3   		NEWPLA  003F
+NEXPLO= 0008   		NGAMES  0100   		NGAME0  040E   		NGAMIH  040D   		NGAMIL  040C
+NGAM2H  0410   		NGAM2L  040F   		NGAM20  0411   		NGAVGH  0413   		NGAVGL  0412
+NGAVGZ  0414   		NHISCO= 0008   		NICHAR= 0004   		NINVAD= 0007   		NLINES= 0010
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18+
+SYMBOL TABLE
+
+NNYMPH= 0040   		NOZERO  0020 R 		NPARTI= 0010   		NPCHAR= 0008   		NPLANE= 0008
+NPLAYR  0101   		NRANKS= 0063   		NROMS = 000C   		NUMPLA  003E   		NWNYMC  015B
+NWTELI  015A   		NYMCOL= 000C   		NYMCOU  03AB   		NYMPL   0203   		NYMPY   0243
+OBJIND  0055   		OCURSL  00A5   		OFRTIM  00A4   		OLDLHI  00AB   		OLDLLO  00AA
+OLOFLI  0150   		OM2GAM= 0001   		OPFLIP  013D   		OPFUSE  0141   		OPPULS  013E
+OPSPIN  0140   		OPTANK  013F   		OPTIN1  0009   		OPTIN2  000A   		OPTIN3  016A
+OTB     0052   		OUTANK= 60E0   		OUT0  = 4000   		PARLIX  0203   		PARLIY  0223
+PARLIZ  0243   		PARLXA= 0020   		PARLXV  02C3   		PARLYA= 0020   		PARLYV  02E3
+PARLZA= 0020   		PARLZV  0303   		PARTIX  0263   		PARTIY  0283   		PARTIZ  02A3
+PARTXA= 0000   		PARTXV  0323   		PARTYA= 0000   		PARTYV  0343   		PARTZA= 0000
+PARTZV  0363   		PCHCOL= 0001   		PCVELO= 0009   		PDIRED= 000B   		PDIWHI= 0009
+PDIYEL= 000A   		PLAGRO  0115   		PLANEY  03FE   		PLAYUP  003D   		POKEY = 60C0
+POKEY2= 60D0   		POTGO = 60CB   		POTGO2= 60DB   		PROG  = 9000   		PSCALE  016B
+PSHCTR= 0008   		PUCHDE  00B2   		PULPOT  0157   		PULSCO  0143   		PULSON  0148
+PULTIM  0147   		PULVEL= FEA0   		PURPLE= 0002   		PXL     0056   		PYL     0057
+PZL     0058   		QDSTAT  0001   		QFRAME  0003   		QNXTST  0002   		QSTATE  0000
+QSTATU  0005   		QTMPAU  0004   		QT1     00B5   		QT2     016C   		QT3     0455
+QT4     0720   		QT5     011F   		QT6     011B   		QUASEC= 0005   		RANDOM= 60CA
+RANDO2= 60DA   		RANKS   0600   		RED   = 0003   		REHIIN  0034 RG		RITSID  007C
+ROMSTA= 3000   		ROTDIS  0114   		ROTFLG  0113   		RSCORH  0045   		RSCORL  0043
+RSCORM  0044   		RUNGVG  00B0   		SAVEND  03CE   		SAVEP   03BC   		SAVEX   0035
+SAVEY   0036   		SCFL    0079   		SECOND= 0014   		SECOPH  040B   		SECOPL  0409
+SECOPM  040A   		SECOUH  0408   		SECOUL  0406   		SECOUM  0407   		SECUVG  00B6
+SECUVY  016E   		SKCTL = 60CF   		SKCTL2= 60DF   		SPACG = 0000   		SPARE3  0133
+SPBINA  013A   		SPFTIM  013C   		SPINCO  0145   		SPLINE  0139   		SPOKST  0425
+SPXIND  013B   		SUBCOU  0099   		SUZCNT  03AA   		SUZTIM  0125   		SVGLIS  0076
+SWFINA  004E   		SWRELE  004F   		SWSTAT  004D   		SWSTRT  004D   		SXH     0062
+SXL     0061   		SYM   = 6092   		SZH     0064   		SZL     0063   		S1    = 0126 R
+S2    = 00D4 R 		S3    = 010F R 		S4    = 00EF R 		S5    = 00FB R 		TANCOL= 0002
+TANKCO  0144   		TBHD    0050   		TBLIND  0602   		TCMFLG  00A2   		TEACNT= 0001 R
+TEASRH= 0007 R 		TEASRL  0006 R 		TEAX    0000 R 		TEMPL   002A   		TEMPX   002E
+TEMPY   002F   		TEMPZ   0030   		TEMP0   0029   		TEMP1   002A   		TEMP2   002B
+TEMP3   002C   		TEMP4   002D   		TIMHIS  0605   		TNKOUT  00A1   		TOUT0   00B4
+TRACOL= 0005   		TSLAMR  000B   		TURQOI= 0004   		TYPCOD  015E   		UNITXH  009B
+UNITXL  009A   		UNITZH  009D   		UNITZL  009C   		VECRAM= 2000   		VGBRIT  0073
+VGLIST  0074   		VGSIZE  0072   		VGSTAR= 4800   		VGSTOP= 5800   		VGY     00A9
+WAVEN1  0046   		WAVEN2  0047   		WCHAMX  011A   		WCHARF  0119   		WCHARI  0118
+WCHARL  0120   		WELCOL= 0006   		WELLID  0112   		WELTYP  0111   		WFLICA  015D
+WFLMAX  012E   		WFLMIN  0129   		WFUFRQ  015F   		WFUMAX  0132   		WFUMIN  012D
+WFUSCH  0159   		WFUSIH= 0169   		WFUSIL= 0164   		WHITE = 0000   		WINVIL  0160
+WINVIN  0165   		WINVJM  011D   		WINVMX  011C   		WNYMMX  011E   		WPULCA  015C
+WPULFI  016D   		WPUMAX  012F   		WPUMIN  012A   		WRBOOK  001E RG		WRHIIN  001A RG
+WSPMAX  0131   		WSPMIN  012C   		WTACAR  0149   		WTAMAX  0130   		WTAMIN  012B
+WTCHDG= 5000   		WTFMAX  0136   		WTTFRA  00B3   		XADJL   0066   		XCOMP   006E
+X0H     0080   		X0L     0078   		X1H     0081   		X1L     0079   		X2H     0082
+X2L     007A   		X3H     0083   		X3L     007B   		X4H     0084   		X4L     007C
+X5H     0085   		X5L     007D   		X6H     0086   		X6L     007E   		X7H     0087
+X7L     007F   		YCOMP = 0070   		YDEUNI  00A0   		YELLOW= 0001   		ZABFLI= 0000
+ZABFUS= 0004   		ZABPUL= 0001   		ZABTAN= 0002   		ZABTRA= 0003   		ZADEST  0121
+ZADJL   0068   		ZAPCOL= 0000   		ZBLACK= 000F   		ZBLUE = 000B   		ZCARFL= 0001
+ZCARFU= 0003   		ZCARNO= 0000   		ZCARPU= 0002   		ZDIRDO= 0080   		ZDIRUP= 0000
+ZFIRNO= 0000   		ZFIRYE= 0040   		ZGREEN= 0007   		ZMOTJM= 0080   		ZMOTMO= 0000
+ZPNLOC  00AE   		ZPOFFS  00AF   		ZPURPL= 0008   		ZRED  = 000C   		ZROCCW= 0040
+ZROTCW= 0000   		ZTURQO= 0003   		ZWHITE= 0000   		ZYELLO= 0004   		Z0H     0090
+Z0L     0088   		Z1H     0091   		Z1L     0089   		Z2H     0092   		Z2L     008A
+Z3H     0093   		Z3L     008B   		Z4H     0094   		Z4L     008C   		Z5H     0095
+Z5L     008D   		Z6H     0096   		Z6L     008E   		Z7H     0097   		Z7L     008F
+ALEARO-ALIENS EAROM	ATARI MAC65 VM03.09  00:00:56 PAGE 18+
+SYMBOL TABLE
+
+$BC     0018   		$BCCNT  0016   		$CCTIM  0013   		$CMODE  0009   		$CNCT   0017
+$CNSTT  000D   		$COINA  0008   		$INTCT  0007   		$LAM    0008   		$LMBIT= 0008
+$LMTIM  000C   		$PSTSL  0010   		$TEST   0008   		$$CRDT  0006   		.Z.   = 0003
+...RD = 0010   		...RPC= 0023   		...T  = 012B R 		...X  = 0000
+. ABS.	0721	  00
+      	012C	  01
+ERRORS DETECTED: 0
+FREE CORE: 12754. WORDS
+
+OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
+
+(OBJ:ALEARO.OBJ,OBJ:ALEARO.LST=DK1:ALEARO)
+
+A TOTAL OF 1,949 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.1     I/O TIME -  00:00:00.0
+
+                                                                                                                                                                                      

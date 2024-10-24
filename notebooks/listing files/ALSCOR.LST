@@ -1,0 +1,1742 @@
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14
+TABLE OF CONTENTS
+
+   1-  2	****************************************
+   1-  3	*					*
+   1-  4	*MODULE:ALSCOR				*
+   1-  5	*PROGRAMMER:DFT				*
+   1-  6	*FUNCTION:SCORE PROCESSING		*
+   1-  7	*					*
+   1-  8	*****************************************
+   1- 11 **************************************************
+   1- 12 *						*
+   1- 13 *MODULE:		ALCOMN				*
+   1- 14 *PROGRAMMER:	DAVE THEURER			*
+   1- 15 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 16 *		TO BE .INCLUDED IN:		*
+   1- 17 *		    ALGAME,ALDISP,ALHARD	*
+   1- 18 *						*
+   1- 19	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 20	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 21	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 22	STRICTLY PROHIBITED.
+   1- 23 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  15- 31 INFO DISPLAY-MESSAGES
+  16-  1	INFO DISPLAY-LIVES, SCORES
+  16- 59 STARFIELD MESSAGES
+  17-  1	UPDATE PLAYER'S SCORE, LIVES, SCALE
+  17- 52	DISPLAY 6 BCD DIGITS W. ZERO SUP.
+  17- 81	DISPLAY 1 BCD DIGIT WITH ZERO SUPR.
+  18-  1	INITIALIZE SCORE/LIVES TEMPLATE
+  19-  1 INFO ONLY - GAME OVER & PLAY PLAYER
+  21-  1	INFOR DISPLAY-CREDITS,COPYRIGHT
+  22-  1	HEX TO BCD CONVERSION
+  24-  1 MESSAGE ROUTINE
+  27-  2	INITIALIZE HIGH SCORE TABLES
+  27-  4	NEW GAME OPTION SETUP & CHECK
+  27- 77	CHECK FOR GAME PLAY OPTION CHANGE
+  28-  1	HISCHK:HIGH SCORE DETECTION
+  29-  1	HISCORE INITIALS PREP
+  30-  1	GETINI:GET INITIALS
+  31-  1 USER SUBROUTINES FOR I/O
+  32-  1	USER SUBROUTINES FOR IO
+  32-  2	GET INITIALS DISPLAY
+  34-  2	DISPLAY HIGH SCORE LADDER
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14
+TABLE OF CONTENTS
+
+  34- 37 DISPLAY HI SCORE LADDER
+  34- 97	DISPLAY BONUS INTERVAL
+  35-  1	UTILITY-DISPLAY 1 SET OF INITIALS
+  36-  1 RANK DISPLAY
+  37-  1	DISPLAY PLAYER RATING REQUEST
+  38-  1	LOGO INITIALIZATION
+  38- 19	LOGO-SHRINKING BOX RAINBOW
+  38- 46	LOGO - LOGO RAINBOW
+  38- 70	LOGO RAINBOW BUILDER
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 1
+
+
+     1                                  .TITLE  ALSCOR-SCORE MODULE
+     2                                          .SBTTL  ****************************************
+     3                                          .SBTTL  *                                       *
+     4                                          .SBTTL  *MODULE:ALSCOR                          *
+     5                                          .SBTTL  *PROGRAMMER:DFT                         *
+     6                                          .SBTTL  *FUNCTION:SCORE PROCESSING              *
+     7                                          .SBTTL  *                                       *
+     8                                          .SBTTL  *****************************************
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 15
+VARIABLES - PAGE 1
+
+     2                                  ;EXTERNALLY DEFINED SUBROUTINES
+     3                                          .GLOBL VGVTR1,VGADD,VGSCA1,VGHEXZ,VGJSRL,INBOOM,VGADD2,WRHIIN,SWAPVG,VGRTSL
+     4                                          .GLOBL BONSCO,VGSCAL
+     5
+     6                                  ;SUBROUTINES CALLED BY USER
+     7                                          .GLOBL GETINI,HISCHK,INIINI,INFO,GETCUR,DPRSTA,DIGTYS,COCFLI,GINICO
+     8                                          .GLOBL LDRDSP,GETDSP,RQRDSP,DSPHOL,INILIT
+     9                                          .GLOBL DGOVER,DPLPLA,MSGS,D2GAME,KILLER,INITEM,WRBOOK,BOLOUT,DSPCRD
+    10                                  ;MESSAGE #'S
+    11                                          .GLOBL MCMODE,MCMOD1,MCMOD2,MCMOD3,MINSER
+    12                                          .GLOBL MATARI,MCREDI,VGDOT,VGVTR
+    13                                          .GLOBL MHIGHS,MPLAYR,MENTER,ENGMSG,MSGLBS,LSYMBL,MPLAY,MPLYR2
+    14                                          .GLOBL MPRMOV,MPRFIR,VGMSGA,MPRESS,MGAMOV,D70MSK,MRANK
+    15                                          .GLOBL MRATE,MPRMOV,MPRFIR,MNOVIC,MEXPER
+    16                                          .GLOBL MLEVEL,MHOLE,MBONUS,MTIME
+    17                                          .GLOBL MBONPT,M2GAME,HALF
+    18                                          .GLOBL LEVEL
+    19                                          .GLOBL LOGINI,BOXPRO,LOGPRO,CLRSCO
+    20                                          .GLOBL VORLIT,BONDRY
+    21                                          .GLOBL MBOLIFE,MSPIKE,MAPROA,MSUPZA
+    22                                          .GLOBL VGSTAT,EABAD
+    23                                          .GLOBL HISLOC,SCALOC,LIVLOC,SCOLOC
+    24                                          .GLOBL SCECOU,SCORES,HIILOC,LSYMB0,SCOBUF,SCLEVEL,VORBOX
+    25
+    26         0060                     ITIMHI=60
+    27         001A                     CBLANK=26.
+    28
+    29         0000'                            .CSECT
+    30                                  ;
+    31                                          .SBTTL INFO DISPLAY-MESSAGES
+    32
+    33                                  ;INPUT:		MSGREQ: BITS SET TO REQUEST A MSG
+    34                                  ;
+    35                                  ;OUTPUT:	ACC,X,Y,SAVEX DESTROYED
+    36   0000    00G   00G   00G   00G  TCOMOD: .BYTE MCMODE,MCMOD1,MCMOD2,MCMOD3
+    37
+    38   0004                           INFO:
+    39   0004    A9    01                       LDA I,1
+    40   0006    85    72                       STA VGSIZE
+    41   0008    20  0000G                      JSR VGSCA1
+    42   000B    A0    05                       LDY I,LETCOL            ;STANDARD LETTER COLOR
+    43   000D    20  081E'                      JSR NWCOLO
+    44   0010    A5    05                       LDA QSTATUS
+    45   0012    30    00                       IFPL                    ;ATTRACT?
+    46   0014    A2    00G                      LDX I,MGAMOV            ;YES. "GAME OVER"
+    47   0016    A5    03                       LDA QFRAME
+    48   0018    29    20                       AND I,20
+    49   001A    D0    00                       IFEQ
+    50   001C    A2    00G                      LDX I,MINSER            ;FLASH INSERT COINS
+    51   001E    A5    06                       LDA $$CRDT
+    52   0020    F0    00                       IFNE
+    53   0022    24    A2                       BIT TCMFLG
+    54   0024    30    00                       IFPL                    ;2 GAME MINIMUM?
+    55   0026    A2    00G                      LDX I,MPRESS            ;NO. PRESS START
+    56   0025    02                             ENDIF
+    57   0021    06                             ENDIF
+    58   001B    0C                             ENDIF
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 15+
+INFO DISPLAY-MESSAGES
+
+    59   0028    20  0263'                      JSR MSGS
+    60   002B    20  025C'                      JSR VGCNTR
+    61   002E    AD  0000G                      LDA VGMSGA              ;BLANK OUT LEVEL
+    62   0031    8D  0000G                      STA SCLEVEL
+    63   0034    85    02G                      STA SCLEVEL+2
+    64   0036    20  01F7'                      JSR DSPCRD              ;DISPLAY CREDITS & ATARI
+    65   0013    25                             ENDIF
+    66
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 16
+INFO DISPLAY-LIVES, SCORES
+
+     1                                          .SBTTL  INFO DISPLAY-LIVES, SCORES
+     2
+     3   0039    A9    01                       LDA I,1                 ;(SCALE)
+     4   003B    A0    00                       LDY I,0                 ;(PLAYER ID)
+     5   003D    20  00CE'                      JSR UPSCLI              ;PLAYER 1 DATA
+     6   0040    24    05                       BIT QSTATUS
+     7   0042    30    00                       IFPL                    ;ATTRACT?
+     8   0044    A5    43                       LDA RSCORL              ;YES. DISPLAY P2 SCORE IF NOT 0
+     9   0046    05    44                       ORA RSCORM
+    10   0048    05    45                       ORA RSCORH
+    11   004A    B8    50    00                 ELSE
+         0043    09
+    12   004D    A5    3E                       LDA NUMPLA              ;NO. GAME MODE. 2 PLAYERS?
+    13   004C    02                             ENDIF
+    14   004F    F0    00                       IFNE
+    15   0051    A9    01                       LDA I,1                 ;YES. DISPLAY PLAYER 2 DATA
+    16   0053    A8                             TAY                     ;(SCALE 1, PLAYER 1)
+    17   0054    20  00CE'                      JSR UPSCLI
+    18   0050    06                             ENDIF
+    19   0057    A5    00                       LDA QSTATE
+    20   0059    C9    04                       CMP I,CPLAY             ;PLAY STATE?
+    21   005B    F0    00                       IFNE
+    22   005D    A9    1D                       LDA I,<<HSCORL+21.>&0FF>+2      ;NO. SET UP FOR HI SCORE UPDATE
+    23   005F    85    3B                       STA INDYLO
+    24   0061    A9    07                       LDA I,<<HSCORL+21.>+2>/100
+    25   0063    85    3C                       STA INDYLO+1
+    26   0065    AE  0000G                      LDX HISLOC              ;INDEX INTO TEMPLATE
+    27   0068    20  0126'                      JSR NWDIGS
+    28   006B    A0    0A               ZATC4V::        LDY I,ZATC4C            ;VERIFY CALL TO ATARI LITERAL
+    29   006D    A9    A7                       LDA I,0A7
+    30                                          BEGIN
+    31   006F    59  021D'                      EOR Y,ZATC4S
+    32   0072    88                             DEY
+    33   0073    10    FA                       MIEND
+    34   0075    8D  016C                       STA QT2
+    35   0078    AE  0000G                      LDX HIILOC
+    36   007B    A9    02                       LDA I,2                 ;INITIALS COUNTER
+    37   007D    85    38                       STA INDEX2
+    38                                                                  ;
+    39                                          BEGIN                   ;UPDATE HIGH INITIALS
+    40   007F    A4    38                       LDY INDEX2              ;
+    41   0081    B9  061B                       LDA Y,INITAL+<3*NHISCO-3>;GET INITIAL
+    42   0084    0A                             ASL
+    43   0085    A8                             TAY
+    44   0086    B9  0016G                      LDA Y,VGMSGA+22.        ;GET LSB OF JSRL
+    45   0089    9D  0000G                      STA X,SCOBUF            ;UPDATE TEMPLATE
+    46   008C    E8                             INX
+    47   008D    E8                             INX
+    48   008E    C6    38                       DEC INDEX2
+    49   0090    10    ED                       MIEND
+    50   005C    35                             ENDIF
+    51   0092    A9  0001G                      LDAH SCOBUF+1           ;INSERT JSRL TO INFO BUFFER
+    52   0094    A2    00                       LXL SCOBUF
+         0095  0000G
+    53   0096    20  0000G                      JSR VGJSRL
+    54   0099    AD  0123                       LDA ELICNT
+    55   009C    10    00                       IFMI                    ;WARNING?
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 16+
+INFO DISPLAY-LIVES, SCORES
+
+    56   009E    A2    00G                      LDX I,MSPIKE            ;YES. AVOID SPIKES
+    57   00A0    20  0263'                      JSR MSGS
+    58   009D    05                             ENDIF
+    59                                          .SBTTL STARFIELD MESSAGES
+    60   00A3    A5    00                       LDA QSTATE
+    61   00A5    C9    18                       CMP I,CNEWV2
+    62   00A7    D0    00                       IFEQ
+    63   00A9    A5    05                       LDA QSTATUS
+    64   00AB    10    00                       IFMI                    ;ATTRACT?
+    65   00AD    A6    3D                       LDX PLAYUP              ;NO.
+    66   00AF    BD  0102                       LDA X,BONUS
+    67   00B2    F0    00                       IFNE                    ;DISPLAY BONUS?
+    68   00B4    A2    00G                      LDX I,MBONPT            ;YES.
+    69   00B6    20  0263'                      JSR MSGS
+    70   00B9    A4    3D                       LDY PLAYUP
+    71   00BB    BE  0102                       LDX Y,BONUS
+    72   00BE    20  0813'                      JSR BODSPL
+    73   00B3    0D                             ENDIF
+    74   00C1    A2    00G                      LDX I,MSUPZA            ;"SUPER ZAPPER RECHARGED"
+    75   00C3    20  0263'                      JSR MSGS
+    76   00C6    A2    00G                      LDX I,MAPROA
+    77   00C8    20  0263'                      JSR MSGS                ;LEVEL LITERAL
+    78   00AC    1E                             ENDIF
+    79   00A8    22                             ENDIF
+    80   00CB    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 17
+UPDATE PLAYER'S SCORE, LIVES, SCALE
+
+     1                                          .SBTTL  UPDATE PLAYER'S SCORE, LIVES, SCALE
+     2   00CC    42    45               SCOSOL: .BYTE LSCORL+2,RSCORL+2 ;SCORE LOCATIONS (PLAYER 0,1)
+     3   00CE    A6    00               UPSCLI: LDX QSTATE              ;UPDATE SCORE SCALE, LIVES
+     4   00D0    E0    04                       CPX I,CPLAY             ;Y=PLAYER ID
+     5   00D2    84    2B                       STY TEMP2               ;ACC=PROPOSED BINARY SCALE
+     6   00D4    C4    3D                       CPY PLAYUP              ;NO. UPDATE LIVES & SCALE (146 MICROSECONDS)
+     7   00D6    D0    00                       IFEQ                    ;PLAYER UP?
+     8   00D8    24    05                       BIT QSTATUS             ;YES.
+     9   00DA    10    00                       IFMI                    ;ATTRACT?
+    10   00DC    A9    00                       LDA I,0                 ;NO. BIG SCORE
+    11   00DB    02                             ENDIF
+    12   00D7    06                             ENDIF                   ;Y=PLAYER ID (0 OR 1)
+    13                                                                  ;ACC=SCALE (0 OR 1)
+    14   00DE    09    70                       ORA I,70
+    15   00E0    BE  0000G                      LDX Y,SCALOC
+    16   00E3    9D  0000G                      STA X,SCOBUF            ;UPDATE SCALE
+    17   00E6    BE  0000G                      LDX Y,LIVLOC
+    18   00E9    B9  0048                       LDA Y,LIVES1
+    19   00EC    85    38                       STA INDEX2
+    20   00EE    F0    00                       IFNE
+    21   00F0    C4    3D                       CPY PLAYUP
+    22   00F2    D0    00                       IFEQ                    ;PLAYER UP BEING DISPLAYED?
+    23   00F4    C6    38                       DEC INDEX2              ;YES. TAKE 1 LIFE FOR CURSOR
+    24   00F3    02                             ENDIF
+    25   00EF    06                             ENDIF
+    26   00F6    A0    01                       LDY I,1
+    27                                          BEGIN
+    28   00F8    AD  0000G                      LDA LSYMBL              ;DEFAULT LIFE PIC
+    29   00FB    C4    38                       CPY INDEX2              ;
+    30   00FD    90    00                       IFCS                    ;NO LIFE?
+    31   00FF    F0    00                       IFNE
+    32   0101    AD  0000G                      LDA LSYMB0              ;NO LIFE. BLANK PIC
+    33   0100    03                             ENDIF
+    34   00FE    05                             ENDIF
+    35   0104    9D  0000G                      STA X,SCOBUF
+    36   0107    E8                             INX
+    37   0108    E8                             INX
+    38   0109    C8                             INY
+    39   010A    C0    07                       CPY I,7
+    40   010C    90    EA                       CSEND
+    41   010E    A4    2B                       LDY TEMP2
+    42   0110    A5    00                       LDA QSTATE
+    43   0112    C9    04                       CMP I,CPLAY             ;IF NOT PLAYING THEN
+    44   0114    D0    04                       BNE ANYWAY              ;ALWAYS UPDATE BOTH SCORES
+    45   0116    C4    3D                       CPY PLAYUP
+    46   0118    D0    00                       IFEQ                    ;PLAYER UP?
+    47   011A    BE  0000G              ANYWAY: LDX Y,SCOLOC            ;YES.
+    48   011D    B9  00CC'                      LDA Y,SCOSOL
+    49   0120    85    3B                       STA INDYLO
+    50   0122    A9    00                       LDA I,0
+    51   0124    85    3C                       STA INDYHI
+    52                                          .SBTTL  DISPLAY 6 BCD DIGITS W. ZERO SUP.
+    53   0126                           NWDIGS:                         ;INDYLOC(2)=LOC OF 3 BYTES
+    54                                                                  ;CONTAINING 6 BCD DIGITS
+    55                                                                  ;X=DESTINATION INDEX FROM SCOBUF
+    56   0126    A0    02                       LDY I,2                 ;BYTE COUNTER
+    57   0128    84    2A                       STY TEMP1
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 17+
+DISPLAY 6 BCD DIGITS W. ZERO SUP.
+
+    58   012A    38                             SEC
+    59                                          BEGIN                   ;LOOP FOR EACH BYTE
+    60   012B    08                             PHP
+    61   012C    A0    00                       LDY I,0
+    62   012E    B1    3B                       LDA NY,INDYLOC          ;DISPLAY HIGH NIBBLE
+    63   0130    4A                             LSR
+    64   0131    4A                             LSR
+    65   0132    4A                             LSR
+    66   0133    4A                             LSR
+    67   0134    28                             PLP
+    68   0135    20  014B'                      JSR NWHEXZ
+    69   0138    A5    2A                       LDA TEMP1
+    70   013A    D0    00                       IFEQ
+    71   013C    18                             CLC                     ;ALWAYS DISPLAY LAST DIGIT
+    72   013B    01                             ENDIF
+    73   013D    A0    00                       LDY I,0
+    74   013F    B1    3B                       LDA NY,INDYLOC          ;NOW DO LOW NIBBLE
+    75   0141    20  014B'                      JSR NWHEXZ
+    76   0144    C6    3B                       DEC INDYLOC
+    77   0146    C6    2A                       DEC TEMP1
+    78   0148    10    E1                       MIEND
+    79   0119    30                             ENDIF
+    80   014A    60                             RTS
+    81                                          .SBTTL  DISPLAY 1 BCD DIGIT WITH ZERO SUPR.
+    82   014B                           NWHEXZ:
+    83   014B    29    0F                       AND I,0F                ;ISOLATE 1 BCD DIGIT
+    84   014D    A8                             TAY
+    85   014E    F0    00                       IFNE                    ;NON ZERO?
+    86   0150    18                             CLC                     ;YES. CLEAR 0 SUPPRESSOR
+    87   014F    01                             ENDIF
+    88   0151    B0    00                       IFCC                    ;ZERO SUPPRESS TO ZERO?
+    89   0153    C8                             INY                     ;NO. DISPLAY ZERO
+    90   0152    01                             ENDIF
+    91   0154    08                             PHP
+    92   0155    98                             TYA
+    93   0156    0A                             ASL                     ;*2 TO GET VGMSGA OFFSET
+    94   0157    A8                             TAY
+    95   0158    B9  0000G                      LDA Y,VGMSGA            ;GET LSB OF CHARACTER'S JSRL
+    96   015B    9D  0000G                      STA X,SCOBUF            ;UPDATE TEMPLATE
+    97   015E    E8                             INX
+    98   015F    E8                             INX
+    99   0160    28                             PLP
+   100   0161    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 18
+INITIALIZE SCORE/LIVES TEMPLATE
+
+     1                                          .SBTTL  INITIALIZE SCORE/LIVES TEMPLATE
+     2                                                                  ;
+     3                                                                  ;INITIALIZE RAM SCORE DISPLAY TEMPLATE
+     4   0162                           INITEM:                         ;
+     5   0162    A6    3E                       LDX NUMPLA
+     6   0164    24    05                       BIT QSTATUS
+     7   0166    30    00                       IFPL                    ;ATTRACT?
+     8   0168    A5    43                       LDA RSCORL              ;YES.
+     9   016A    05    44                       ORA RSCORM
+    10   016C    05    45                       ORA RSCORH
+    11   016E    F0    00                       IFNE
+    12   0170    A2    01                       LDX I,1                 ;DISPLAY PLAYER 2 SCORE IF NOT 0
+    13   016F    02                             ENDIF
+    14   0167    0A                             ENDIF
+    15   0172    A9  0000G                      LDAL SCOBUF
+    16   0174    85    74                       STA VGLIST
+    17   0176    A9  0001G                      LDAH SCOBUF+1
+    18   0178    85    75                       STA VGLIST+1
+    19   017A    BD  0000G                      LDA X,SCECOU
+    20   017D    A8                             TAY
+    21   017E    38                             SEC
+    22   017F    65    74                       ADC VGLIST
+    23   0181    48                             PHA
+    24                                          BEGIN                   ;LOOP FOR EACH BYTE IN SCORE TEMPLATE
+    25   0182    B9  0000G                      LDA Y,SCORES
+    26   0185    91    74                       STA NY,VGLIST           ;COPY ROM TEMPLATE INTO RAM
+    27   0187    88                             DEY
+    28   0188    D0    F8                       EQEND
+    29   018A    B9  0000G                      LDA Y,SCORES
+    30   018D    91    74                       STA NY,VGLIST
+    31   018F    A5    05                       LDA QSTATUS
+    32   0191    10    00                       IFMI                    ;ATTRACT?
+    33   0193    A9  0001G                      LDAH SCLEVEL+1
+    34   0195    85    75                       STA VGLIST+1
+    35   0197    A9  0000G                      LDAL SCLEVEL
+    36   0199    85    74                       STA VGLIST              ;POINT AT LEVEL JSRL
+    37   019B    A5    9F                       LDA CURWAV
+    38   019D    18                             CLC
+    39   019E    69    01                       ADC I,1
+    40   01A0    20  06C4'                      JSR DSP1HX
+    41   0192    10                             ENDIF
+    42   01A3    68                             PLA
+    43   01A4    85    74                       STA VGLIST
+    44   01A6    4C  0000G                      JMP VGRTSL              ;PUT RTSL INTO SCORE BUFFER
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 19
+INFO ONLY - GAME OVER & PLAY PLAYER
+
+     1                                          .SBTTL INFO ONLY - GAME OVER & PLAY PLAYER
+     2   01A9                           DPLPLA:
+     3
+     4   01A9    A2    00G                      LDX I,MPLAY             ;"PLAY"
+     5   01AB    20  0263'                      JSR MSGS
+     6   01AE    4C  01B8'                      JMP GENPLA
+     7   01B1    A9    30               DGOVER: LDA I,30                ;SPECIAL COORDINATES
+     8   01B3    A2    00G                      LDX I,MGAMOV            ;"GAME OVER"
+     9   01B5    20  0266'                      JSR MSGEN3
+    10   01B8    20  01E1'              GENPLA: JSR DPLRNO              ;PLAYER X
+    11   01BB    4C  0004'                      JMP INFO
+    12   01BE    20  0004'              DPRSTA: JSR INFO                ;DISPLAY ALL INFO
+    13   01C1    A9    00                       LDA I,0
+    14   01C3    A2    00G                      LDX I,MPRESS            ;SPECIAL PRESS START IN MIDDLE OF SCREEN
+    15   01C5    4C  0266'                      JMP MSGEN3              ;
+    16   01C8                           D2GAME:                 ;SPECIAL 2 GAME MIN/INSERT COINS IN CENTER
+    17   01C8    A9    00                       LDA I,0
+    18   01CA    A2    00G                      LDX I,M2GAME            ;2 GAME MINIMUM
+    19   01CC    20  0266'                      JSR MSGEN3
+    20   01CF    A5    03                       LDA QFRAME
+    21   01D1    29    1F                       AND I,1F
+    22   01D3    C9    10                       CMP I,10
+    23   01D5    B0    00                       IFCC
+    24   01D7    A9    E0                       LDA I,-20               ;FLASH INSERT COINS
+    25   01D9    A2    00G                      LDX I,MINSER
+    26   01DB    20  0266'                      JSR MSGEN3
+    27   01D6    07                             ENDIF
+    28   01DE    4C  0004'                      JMP INFO
+    29   01E1    A2    00G              DPLRNO: LDX I,MPLAYR            ;GENERAL "PLAYER X"
+    30   01E3    20  0263'                      JSR MSGS
+    31   01E6                           DPLRX:
+    32   01E6    A9    00                       LDA I,0
+    33   01E8    20  082A'                      JSR NWSCA1              ;BIG PLAYER #
+    34   01EB    A6    3D                       LDX PLAYUP              ;JUST PLAYER #
+    35   01ED    E8                     DPLRXX: INX
+    36   01EE    86    61                       STX SXL
+    37   01F0    A9    61                       LDA I,SXL
+    38   01F2    A0    01                       LDY I,1
+    39   01F4    4C  0000G                      JMP DIGTYS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 21
+INFOR DISPLAY-CREDITS,COPYRIGHT
+
+     1                                          .SBTTL  INFOR DISPLAY-CREDITS,COPYRIGHT
+     2   01F7                           DSPCRD:
+     3   01F7    A5    09                       LDA $CMODE              ;YES
+     4   01F9    29    03                       AND I,3
+     5   01FB    AA                             TAX
+     6   01FC    BD  0000'                      LDA X,TCOMOD
+     7   01FF    AA                             TAX
+     8   0200    20  0263'                      JSR MSGS                ;DISPLAY COIN MODE
+     9   0203    CE  016E                       DEC SECUVY
+    10   0206    A5    0A                       LDA OPTIN2
+    11   0208    29    01                       AND I,OM2GAM
+    12   020A    F0    00                       IFNE
+    13   020C    A5    03                       LDA QFRAME
+    14   020E    29    20                       AND I,20
+    15   0210    D0    08                       BNE DBOLOU              ;FLASH EITHER
+    16   0212    A2    00G                      LDX I,M2GAME            ;2 GAME MINIMUM
+    17   0214    20  0263'                      JSR MSGS
+    18   0217    B8    50    00                 ELSE
+         020B    0E
+    19   021A    20  0619'              DBOLOU: JSR BOLOUT              ;YES. DISSLAY BONUS LIFE INTERVAL
+    20   0219    03                             ENDIF
+    21   021D                           ZATC4S::
+    22   021D    A2    00G                      LDX I,MATARI
+    23   021F    20  0263'                      JSR MSGS
+    24   0222    A2    00G                      LDX I,MCREDI
+    25   0224    20  0263'                      JSR MSGS                ;DISPLAY CREDITS
+    26   0227                           ZATC4E:
+    27         000AG                    ZATC4C==ZATC4E-ZATC4S
+    28   0227    A5    06                       LDA $$CRDT
+    29   0229    C9    28                       CMP I,28
+    30   022B    90    00                       IFCS                    ;MAXIMIZE # CREDITS TO 40.
+    31   022D    A9    28                       LDA I,28
+    32   022F    85    06                       STA $$CRDT
+    33   022C    04                             ENDIF
+    34   0231    20  06C4'                      JSR DSP1HX              ;OUTPUT 2 DIGITS W. ZERO SUPPRESION
+    35   0234    A5    17                       LDA $CNCT
+    36   0236    F0    00                       IFNE                    ;PARTIAL CREDITS?
+    37   0238    AD  0243'                      LDA IHALF+1             ;OUTPUT HALF
+    38   023B    AE  0242'                      LDX IHALF
+    39   023E    20  0000G                      JSR VGJSRL
+    40   0237    09                             ENDIF
+    41   0241    60                             RTS
+    42   0242  0000G                    IHALF:  .WORD HALF
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 22
+HEX TO BCD CONVERSION
+
+     1                                          .SBTTL  HEX TO BCD CONVERSION
+     2                                  ;
+     3                                  ;CONVERT HEX TO BCD (SINGLE PRECISION)
+     4                                  ;INPUT:	ACC=HEX
+     5                                  ;OUTPUT:	ACC,TEMP0=BCD
+     6                                  ;
+     7   0244    F8                     HEXBCD: SED
+     8   0245    85    29                       STA TEMP0
+     9   0247    A9    00                       LDA I,0
+    10   0249    85    2C                       STA TEMP3
+    11   024B    A0    07                       LDY I,7                 ;CONVERT HEX TO BCD
+    12                                          BEGIN
+    13   024D    06    29                       ASL TEMP0
+    14   024F    A5    2C                       LDA TEMP3
+    15   0251    65    2C                       ADC TEMP3
+    16   0253    85    2C                       STA TEMP3
+    17   0255    88                             DEY
+    18   0256    10    F5                       MIEND
+    19   0258    D8                             CLD
+    20   0259    85    29                       STA TEMP0
+    21   025B    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 23
+HEX TO BCD CONVERSION
+
+     1   025C                           VGCNTR:                 ;FAST CENTER
+     2   025C    A9    20                       LDA I,20
+     3   025E    A2    80                       LDX I,80
+     4   0260    4C  0000G                      JMP VGADD2
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 24
+MESSAGE ROUTINE
+
+     1                                          .SBTTL MESSAGE ROUTINE
+     2                                  ;
+     3                                  ;BLOCK NAME:	MSGS
+     4                                  ;DESCRIPTION:	WILL OUTPUT SPECIFIED MESSAGE TO SPECIFIED LOCATION ON SCREEN
+     5                                  ;INPUT PARAMS:	(X)=MESSAGE # * 2
+     6                                  ;OUTPUT PARAMS:	NONE
+     7                                  ;REGISTERS:	A,X,Y
+     8   0263                           MSGS:
+     9   0263    BD  0001G                      LDA AX,MSGLBS+1
+    10   0266    86    35               MSGEN3: STX SAVEX
+    11   0268    85    2B                       STA TEMP2
+    12   026A    A4    35                       LDY SAVEX
+    13   026C    B1    AC                       LDA NY,LITRAL           ;GET LITERAL PTR
+    14   026E    85    3B                       STA INDYLO
+    15   0270    C8                             INY
+    16   0271    B1    AC                       LDA NY,LITRAL
+    17   0273    85    3C                       STA INDYHI
+    18   0275    E0    00G              ZSECL0::        CPX I,MATARI
+    19   0277    D0    00                       IFEQ                    ;COPYRIGHT MSG?
+    20   0279    A5    74                       LDA VGLIST              ;YES. SAVE START LOC
+    21   027B    85    B6                       STA SECUVG
+    22   027D    A5    75                       LDA VGLIST+1
+    23   027F    85    B7                       STA SECUVG+1
+    24   0278    08                             ENDIF
+    25   0281    A0    00                       LDY I,0
+    26   0283    B1    3B                       LDA NY,INDYLO           ;GET HORIZ POSITION FROM LITERAL
+    27   0285    85    2A                       STA TEMP1
+    28   0287    20  025C'              MSGENT: JSR VGCNTR
+    29   028A    A9    00               MSGEN2: LDA I,0
+    30   028C    85    73                       STA VGBRIT
+    31   028E    A9    01                       LDA I,1
+    32   0290    85    72                       STA VGSIZE
+    33   0292    20  0000G                      JSR VGSCA1
+    34   0295    A5    2A                       LDA TEMP1
+    35   0297    A6    2B                       LDX TEMP2
+    36   0299    20  0000G                      JSR VGVTR1              ;C  POSITION BEAM (USE VGBRIT)
+    37   029C                           MSGNOP:
+    38   029C    A4    35                       LDY SAVEX               ;SET UP PTR TO LITERAL
+    39   029E    B1    AC                       LDA NY,LITRAL
+    40   02A0    85    3B                       STA INDYLO
+    41   02A2    C8                             INY
+    42   02A3    B1    AC                       LDA NY,LITRAL
+    43   02A5    85    3C                       STA INDYHI
+    44   02A7    A6    35                       LDX SAVEX
+    45   02A9    BD  0000G                      LDA X,MSGLBS
+    46   02AC    48                             PHA
+    47   02AD    4A                             LSR
+    48   02AE    4A                             LSR
+    49   02AF    4A                             LSR
+    50   02B0    4A                             LSR
+    51   02B1    A8                             TAY
+    52   02B2    20  081E'                      JSR NWCOLO              ;SET NEW COLOR
+    53   02B5    68                             PLA
+    54   02B6    29    0F                       AND I,0F
+    55   02B8    20  082A'                      JSR NWSCA1              ;SET NEW SCALE
+    56   02BB    A0    01                       LDY I,1
+    57   02BD    A9    00                       LDA I,0                 ;C  INIT VGLIST OFFSET
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 24+
+MESSAGE ROUTINE
+
+    58   02BF    85    2A                       STA TEMP1
+    59                                          BEGIN
+    60   02C1    B1    3B                       LDA NY,INDYLO           ;C  GET CHARACTER REPRESENTATION
+    61   02C3    85    2B                       STA TEMP2
+    62   02C5    29    7F                       AND I,7F
+    63   02C7    C8                             INY
+    64   02C8    84    2C                       STY TEMP3               ;	SAVE Y
+    65   02CA    AA                             TAX
+    66   02CB    BD  0000G                      LDA AX,VGMSGA           ;C  GET CORRECT JSRL
+    67   02CE    A4    2A                       LDY TEMP1
+    68   02D0    91    74                       STA NY,VGLIST
+    69   02D2    C8                             INY
+    70   02D3    BD  0001G                      LDA AX,VGMSGA+1
+    71   02D6    91    74                       STA NY,VGLIST
+    72   02D8    C8                             INY
+    73   02D9    84    2A                       STY TEMP1               ;	SAVE Y
+    74   02DB    A4    2C                       LDY TEMP3               ;C  GET CHARACTER PTR
+    75   02DD    24    2B                       BIT TEMP2               ;D  IF NOT END OF STRING
+    76   02DF    10    E0                       MIEND
+    77   02E1    A4    2A                       LDY TEMP1               ;C  UPDATE VGLIST
+    78   02E3    88                             DEY
+    79   02E4    4C  0000G                      JMP VGADD
+    80                                  ;NO VERTICAL POSITIONING (Y)
+    81   02E7    86    35               MSGFOL: STX SAVEX               ;INPUT: X=MSG#*2
+    82   02E9    85    2A                       STA TEMP1               ;       ACC=X OFFSET
+    83   02EB    A9    00                       LDA I,0
+    84   02ED    85    2B                       STA TEMP2
+    85   02EF    F0    99                       BEQ MSGEN2              ;ALWAYS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 27
+MESSAGE ROUTINE
+
+     1
+     2                                          .SBTTL  INITIALIZE HIGH SCORE TABLES
+     3
+     4                                          .SBTTL  NEW GAME OPTION SETUP & CHECK
+     5   02F1                           INICHK::
+     6   02F1    20  036F'                      JSR GAMSTA              ;CHECK FOR GAME PLAY OPTION CHANGE
+     7   02F4    AD  0000G                      LDA EABAD
+     8   02F7    29    03                       AND I,03
+     9   02F9    F0    00                       IFNE                    ;CHANGES?
+    10                                                                  ;YES. REINITIALIZE SCORES & INITIALS
+    11   02FB    20  036F'              INIINI: JSR GAMSTA              ;CHECK FOR GAME PLAY OPTION CHANGES
+    12   02FE    A9    08               INIIN2: LDA I,NHISCO            ;START AT 8 RANK GAMES
+    13   0300    8D  0100                       STA NGAMES
+    14   0303    AD  071B                       LDA HSCORL+<3*NHISCO>-3
+    15   0306    0D  071C                       ORA HSCORM+<3*NHISCO>-3
+    16   0309    0D  071D                       ORA HSCORH+<3*NHISCO>-3
+    17   030C    D0    00                       IFEQ                    ;HI SCORES CLEARED?
+    18   030E    20  0385'                      JSR INDUCE              ;YES. INDUCE COMPLETE INITIALIZATION
+    19   030D    03                             ENDIF
+    20                                                                  ;
+    21                                                                  ;INITIALIZE INITIALS
+    22                                                                  ;
+    23   0311    A2    17                       LDX I,<3*NHISCO>-1      ;DEFAULT TO BAD INITIALS
+    24   0313    AD  0000G                      LDA EABAD
+    25   0316    29    01                       AND I,1
+    26   0318    D0    00                       IFEQ                    ;INITIALS VALID?
+    27   031A    A2    0E                       LDX I,<3*NHISCO>-1-9    ;YES. DON'T WRITE OVER TOP 3
+    28   0319    02                             ENDIF
+    29                                          BEGIN                   ;LOOP FOR EACH INITIAL
+    30   031C    BD  0357'                      LDA X,SCOINI
+    31   031F    9D  0606                       STA X,INITAL
+    32   0322    CA                             DEX
+    33   0323    10    F7                       MIEND
+    34                                                                  ;
+    35                                                                  ;INITIALIZE HI SCORES
+    36                                                                  ;
+    37   0325    A2    17                       LDX I,<3*NHISCO>-1      ;DEFAULT TO BAD HI SCORE
+    38   0327    AD  0000G                      LDA EABAD
+    39   032A    29    02                       AND I,2
+    40   032C    D0    00                       IFEQ                    ;HI SCORES VALID?
+    41   032E    A2    0E                       LDX I,<3*NHISCO>-1-9    ;YES. DON'T WRITE OVER TOP 3
+    42   032D    02                             ENDIF
+    43                                          BEGIN                   ;LOOP FOR EACH DIGIT PAIR
+    44   0330    A9    01                       LDA I,1
+    45   0332    9D  0706                       STA X,HSCORL
+    46   0335    CA                             DEX
+    47   0336    10    F8                       MIEND
+    48   0338    AD  0000G                      LDA EABAD
+    49   033B    29    03                       AND I,3
+    50   033D    F0    00                       IFNE                    ;REINITIALIZING?
+    51   033F    A5    0A                       LDA OPTIN2              ;YES. SET UP GAME PLAY OPTIONS
+    52   0341    29    F8                       AND I,0F8
+    53   0343    8D  071E                       STA GAMOP1
+    54   0346    AD  016A                       LDA OPTIN3
+    55   0349    29    03                       AND I,3
+    56   034B    8D  071F                       STA GAMOP3
+    57   033E    0F                             ENDIF
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 27+
+NEW GAME OPTION SETUP & CHECK
+
+    58                                                                  ;
+    59   034E    AD  0000G                      LDA EABAD               ;CLEAR BAD READ FLAG
+    60   0351    29    FC                       AND I,0FC
+    61   0353    8D  0000G                      STA EABAD
+    62   02FA    5B                             ENDIF
+    63   0356    60                             RTS
+    64                                          .MACRO .ASCVG .STRING
+    65                                          .NCHR ..N,<.STRING>
+    66                                          .IRPC ..C,<.STRING>
+    67                                          .IF EQ,''..C-^H20
+    68                                          ..X=26.
+    69                                          .IFF
+    70                                          ..X=''..C-^H41
+    71                                          .ENDC
+    72                                          .BYTE ..X
+    73                                          .ENDR
+    74                                          .ENDM
+    75   0357                           SCOINI:
+    76   0357    07    04    01    0F           .ASCVG  <HEBPJMLDSTFDHPMRRRSEDDJE>
+         035B    09    0C    0B    03
+         035F    12    13    05    03
+         0363    07    0F    0C    11
+         0367    11    11    12    04
+         036B    03    03    09    04
+    77                                          .SBTTL  CHECK FOR GAME PLAY OPTION CHANGE
+    78   036F                           GAMSTA::
+    79   036F    20  0000G                      JSR INILIT              ;READ OPTIONS
+    80   0372    A5    0A                       LDA OPTIN2
+    81   0374    29    F8                       AND I,0F8
+    82   0376    CD  071E                       CMP GAMOP1
+    83   0379    D0    00                       IFEQ
+    84   037B    AD  016A                       LDA OPTIN3
+    85   037E    29    03                       AND I,03
+    86   0380    CD  071F                       CMP GAMOP3
+    87   037A    08                             ENDIF
+    88   0383    F0    00                       IFNE                    ;NEW GAME PLAY OPTIONS?
+    89   0385    AD  0000G              INDUCE: LDA EABAD               ;YES. INDUCE REINITIALIZATION
+    90   0388    09    03                       ORA I,3                 ;OF SCORES & INITIALS
+    91   038A    8D  0000G                      STA EABAD
+    92   0384    08                             ENDIF
+    93   038D    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 28
+HISCHK:HIGH SCORE DETECTION
+
+     1                                          .SBTTL  HISCHK:HIGH SCORE DETECTION
+     2                                  ;EXTERNAL ENTRY POINT
+     3   038E    A5    05               HISCHK: LDA QSTATUS
+     4   0390    29    BF                       AND I,^C<MGTMOD>
+     5   0392    85    05                       STA QSTATUS                     ;OUT OF GAME TIME MODE
+     6
+     7   0394    A5    09                       LDA OPTIN1
+     8   0396    29    43                       AND I,43
+     9   0398    C9    40                       CMP I,40
+    10   039A    D0    00                       IFEQ                    ;SCALES MODE?
+    11   039C    20  0000G                      JSR CLRSCO              ;YES. CLEAR SCORES
+    12   039B    03                             ENDIF
+    13   039F    20  0000G                      JSR WRBOOK              ;WRITE OUT BOOKKEEPING INFO
+    14   03A2    A9    00                       LDA I,0
+    15   03A4    8D  0601                       STA RANKS+1             ;NO RANK FOR PLAYER 2 IN CASE 1 PLAY OR GAME
+    16   03A7    A6    3E                       LDX NUMPLA
+    17   03A9    F0    00                       IFNE                    ;2 PLAYER GAME?
+    18   03AB    A2    03                       LDX I,3                 ;YES. START WITH PLAYER 2
+    19   03AA    02                             ENDIF
+    20                                          BEGIN                   ;LOOP FOR EACH PLAYER (2 THEN 1)
+    21   03AD    B5    42                       LDA X,LSCORH
+    22   03AF    85    2C                       STA TEMP3
+    23   03B1    B5    41                       LDA X,LSCORM
+    24   03B3    85    2D                       STA TEMP4
+    25   03B5    B5    40                       LDA X,LSCORL
+    26   03B7    85    2E                       STA TEMPX               ;SET UP PLAYER'S SCORE
+    27   03B9    8A                             TXA
+    28   03BA    29    01                       AND I,1
+    29   03BC    85    36                       STA SAVEY
+    30   03BE    A9    00                       LDA I,0
+    31   03C0    85    2B                       STA TEMP2
+    32   03C2    A9    1A                       LDA I,CBLANK
+    33   03C4    85    2A                       STA TEMP1
+    34   03C6    85    29                       STA TEMP0               ;SET UP INITIALS (A BLANK BLANK)
+    35   03C8    A9    00                       LDA I,0
+    36   03CA    8D  0605                       STA TIMHIS              ;INITIALIZE RANK
+    37   03CD    A0    FD                       LDY I,253.
+    38                                          BEGIN                   ;LOOP FOR EACH SCORE IN RANK TABLE (HI TO LO)
+    39                                                                  ;UNTIL PLAYERS SCORE > SCORE IN TABLE
+    40   03CF    B9  0620                       LDA Y,HRANKH
+    41   03D2    C5    2C                       CMP TEMP3
+    42   03D4    D0    00                       IFEQ                    ;COMPARE SCORE TO TABLE ENTRY
+    43   03D6    B9  061F                       LDA Y,HRANKM
+    44   03D9    C5    2D                       CMP TEMP4
+    45   03DB    D0    00                       IFEQ
+    46   03DD    C0    52                       CPY I,82.
+    47   03DF    90    00                       IFCS                    ;PRECISION?
+    48   03E1    B9  061E                       LDA Y,HRANKL            ;TRIPLE
+    49   03E4    C5    2E                       CMP TEMPX
+    50   03E6    B8    50    00                 ELSE
+         03E0    08
+    51   03E9    38                             SEC                     ;DOUBLE
+    52   03E8    01                             ENDIF
+    53   03DC    0D                             ENDIF
+    54   03D5    14                             ENDIF
+    55   03EA    B0    00                       IFCC                    ;PLAYER'S SCORE > TABLE ENTRY?
+    56                                          BEGIN                   ;LOOP FROM NEW ENTRY TO BOTTOM OF TABLE
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 28+
+HISCHK:HIGH SCORE DETECTION
+
+    57   03EC    C0    E8                       CPY I,232.
+    58   03EE    90    00                       IFCS                    ;HI SCORE TABLE?
+    59   03F0    A5    29                       LDA TEMP0               ;YES. MOVE INITIALS DOWN
+    60   03F2    BE  051E                       LDX Y,INITAL-232.
+    61   03F5    99  051E                       STA Y,INITAL-232.
+    62   03F8    86    29                       STX TEMP0
+    63   03FA    A5    2A                       LDA TEMP1
+    64   03FC    BE  051F                       LDX Y,INITAL+1-232.
+    65   03FF    99  051F                       STA Y,INITAL+1-232.
+    66   0402    86    2A                       STX TEMP1
+    67   0404    A5    2B                       LDA TEMP2
+    68   0406    BE  0520                       LDX Y,INITAL+2-232.
+    69   0409    99  0520                       STA Y,INITAL+2-232.
+    70   040C    86    2B                       STX TEMP2
+    71   03EF    1E                             ENDIF
+    72   040E    A5    2D                       LDA TEMP4               ;MOVE SCORES DOWN
+    73   0410    BE  061F                       LDX Y,HRANKM
+    74   0413    99  061F                       STA Y,HRANKM
+    75   0416    86    2D                       STX TEMP4
+    76   0418    A5    2C                       LDA TEMP3
+    77   041A    BE  0620                       LDX Y,HRANKH
+    78   041D    99  0620                       STA Y,HRANKH
+    79   0420    86    2C                       STX TEMP3
+    80   0422    C0    52                       CPY I,82.
+    81   0424    90    00                       IFCS                    ;TRIPLE PRECISION?
+    82   0426    A5    2E                       LDA TEMPX
+    83   0428    BE  061E                       LDX Y,HRANKL
+    84   042B    99  061E                       STA Y,HRANKL
+    85   042E    86    2E                       STX TEMPX
+    86   0425    0A                             ENDIF
+    87   0430    C0    55                       CPY I,85.               ;TRIPLE PRECISION?
+    88   0432    90    00                       IFCS
+    89   0434    88                             DEY                     ;YES.
+    90   0433    01                             ENDIF
+    91   0435    88                             DEY
+    92   0436    88                             DEY
+    93   0437    D0    B3                       EQEND
+    94   0439    A0    02                       LDY I,2                 ;ABORT OUTER LOOP
+    95   03EB    4F                             ENDIF
+    96   043B    EE  0605                       INC TIMHIS              ;UPDATE RANK
+    97   043E    C0    55                       CPY I,85.
+    98   0440    90    00                       IFCS                    ;TRIPLE PRECISION?
+    99   0442    88                             DEY                     ;YES.
+   100   0441    01                             ENDIF
+   101   0443    88                             DEY
+   102   0444    88                             DEY
+   103   0445    D0    88                       EQEND
+   104   0447    A6    36                       LDX SAVEY
+   105   0449    AD  0605                       LDA TIMHIS
+   106   044C    9D  0600                       STA X,RANKS             ;UPDATE PLAYER'S RANK
+   107   044F    CA                             DEX
+   108   0450    30    03    4C  03AD'          MIEND
+   109   0455    AD  0601                       LDA RANKS+1
+   110   0458    CD  0600                       CMP RANKS
+   111   045B    90    00                       IFCS                    ;BOTH RANKS SAME?
+   112   045D    C9    63                       CMP I,NRANKS            ;YES. MAKE PLAYER 2 LOW
+   113   045F    B0    00                       IFCC
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 28+
+HISCHK:HIGH SCORE DETECTION
+
+   114   0461    EE  0601                       INC RANKS+1
+   115   0460    03                             ENDIF
+   116   045C    07                             ENDIF
+   117   0464    A5    3D                       LDA PLAYUP              ;SET UP PLAYER ORDER OF FINISH
+   118   0466    49    01                       EOR I,1                 ;LAST PLAYER UP IN D0,D1
+   119   0468    0A                             ASL                     ;1ST PLAYER TO DIE IN D2,D3
+   120   0469    0A                             ASL
+   121   046A    05    3D                       ORA PLAYUP
+   122   046C    69    05                       ADC I,5
+   123   046E    8D  0603                       STA FLGNHI
+   124                                  ;JSR INTLDR			;GO SEE IF ANYBODY MADE IT
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 29
+HISCORE INITIALS PREP
+
+     1                                          .SBTTL  HISCORE INITIALS PREP
+     2   0471    A0    14               INTLDR: LDY I,CNOTFOU           ;DEFAULT IS FAILURE
+     3   0473    AD  0603                       LDA FLGNHI
+     4   0476    F0    00                       IFNE                    ;MORE HI SCORES?
+     5   0478    29    03                       AND I,3         ;YES.
+     6   047A    85    3D                       STA PLAYUP              ;SET UP PLAYER ID
+     7   047C    C6    3D                       DEC PLAYUP
+     8   047E    4E  0603                       LSR FLGNHI
+     9   0481    4E  0603                       LSR FLGNHI
+    10   0484    A6    3D                       LDX PLAYUP
+    11   0486    BD  0600                       LDA X,RANKS
+    12   0489    F0    00                       IFNE
+    13   048B    C9    09                       CMP I,9
+    14   048D    B0    00                       IFCC                    ;PLAYER GET HI SCORE?
+    15   048F    0A                             ASL                     ;YES.
+    16   0490    18                             CLC
+    17   0491    7D  0600                       ADC X,RANKS
+    18   0494    49    FF                       EOR I,0FF
+    19   0496    38                             SEC
+    20   0497    E9    E5                       SBC I,232.-3
+    21   0499    8D  0602                       STA TBLIND              ;SET INDEX TO PT TO MS LETTER
+    22   049C    20  0000G                      JSR COCFLI              ;COCKTAIL FLIP
+    23   049F    A9    60                       LDA I,ITIMHI
+    24   04A1    8D  0605                       STA TIMHIS              ;SET TIMER
+    25   04A4    A9    00                       LDA I,0                 ;CLEAR SWITCHES
+    26   04A6    85    4E                       STA SWFINA              ;
+    27   04A8    85    50                       STA TBHD
+    28   04AA    A9    02                       LDA I,2
+    29   04AC    8D  0604                       STA ININDX              ;SET UP INITIAL COUNTER
+    30   04AF    20  0000G                      JSR INBOOM              ;INITIALIZE BOOM STATE (SUCCESS)
+    31   04B2    A0    24                       LDY I,CBOOM
+    32   04B4    84    00                       STY QSTATE
+    33   04B6    60                             RTS
+    34   048E    28                             ENDIF
+    35   048A    2C                             ENDIF
+    36   04B7    4C  0471'                      JMP INTLDR              ;TRY AGAIN
+    37   0477    42                             ENDIF
+    38   04BA    84    00                       STY QSTATE
+    39   04BC    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 30
+GETINI:GET INITIALS
+
+     1                                          .SBTTL  GETINI:GET INITIALS
+     2                                  ;ENTERNAL ENTRY POINT
+     3   04BD                           GETINI:
+     4   04BD    A9    06                       LDA I,CDGETI            ;GET INIT DISPLAY STATE
+     5   04BF    85    01                       STA QDSTATE
+     6   04C1    A5    03                       LDA QFRAME              ;
+     7   04C3    29    1F                       AND I,1F
+     8   04C5    D0    00                       IFEQ                    ;TIME TO UPDATE TIMER?
+     9   04C7    CE  0605                       DEC TIMHIS              ;YES
+    10   04CA    D0    00                       IFEQ                    ;TIME UP?
+    11   04CC    A0    14                       LDY I,CNOTFOU           ;YES. ABORT
+    12   04CE    84    00                       STY QSTATE
+    13   04D0    60                             RTS
+    14   04CB    05                             ENDIF
+    15   04C6    0A                             ENDIF
+    16   04D1    AE  0602                       LDX TBLIND
+    17   04D4    BD  0606                       LDA X,INITAL            ;GET LETTER BEING CHANGED
+    18   04D7    20  051D'                      JSR GINICO              ;CHANGE IT
+    19   04DA    A8                             TAY
+    20   04DB    10    00                       IFMI
+    21   04DD    A9    1A                       LDA I,26.
+    22   04DF    B8    50    00                 ELSE
+         04DC    05
+    23   04E2    C9    1B                       CMP I,27.
+    24   04E4    90    00                       IFCS
+    25   04E6    A9    00                       LDA I,0
+    26   04E5    02                             ENDIF
+    27   04E1    06                             ENDIF
+    28   04E8    AE  0602                       LDX TBLIND
+    29   04EB    9D  0606                       STA X,INITAL            ;SAVE IT
+    30   04EE    A5    4E                       LDA SWFINA
+    31   04F0    29    18                       AND I,MFIRE!MSUZA
+    32   04F2    A8                             TAY
+    33   04F3    A5    4E                       LDA SWFINA
+    34   04F5    29    67                       AND I,^C<MFIRE!MSUZA!MFAKE>
+    35   04F7    85    4E                       STA SWFINA
+    36   04F9    98                             TYA
+    37   04FA    F0    00                       IFNE                    ;USE THIS LETTER?
+    38                                                                  ;YES
+    39
+    40   04FC    CE  0602                       DEC TBLIND              ;UPDATE INITIAL INDEX
+    41   04FF    CE  0604                       DEC ININDX
+    42   0502    10    00                       IFMI                    ;ALL DONE WITH PLAYER?
+    43   0504    A6    3D                       LDX PLAYUP              ;YES.
+    44   0506    BD  0600                       LDA X,RANKS
+    45   0509    C9    04                       CMP I,4
+    46   050B    B0    00                       IFCC                    ;SAVE IN EAROM?
+    47   050D    20  0000G                      JSR WRHIIN              ;YES. UPDATE EAROM
+    48   050C    03                             ENDIF
+    49   0510    20  0471'                      JSR INTLDR              ;YES. SEE IF OTHER PLAYER GO ON.
+    50   0513    B8    50    00                 ELSE
+         0503    12
+    51   0516    CA                             DEX
+    52   0517    A9    00                       LDA I,0                 ;START AT A
+    53   0519    9D  0606                       STA X,INITAL
+    54   0515    06                             ENDIF
+    55   04FB    20                             ENDIF
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 30+
+GETINI:GET INITIALS
+
+    56   051C    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 31
+USER SUBROUTINES FOR I/O
+
+     1                                          .SBTTL USER SUBROUTINES FOR I/O
+     2   051D    48                     GINICO: PHA                     ;RETURN WITH ACC INCD OR DECD
+     3   051E    A5    50                       LDA TBHD                        ;
+     4   0520    0A                             ASL                     ;SCALE POT READING
+     5   0521    0A                             ASL                     ;
+     6   0522    0A                             ASL                     ;
+     7   0523    18                             CLC                     ;
+     8   0524    65    51                       ADC CURSPO
+     9   0526    85    51                       STA CURSPO
+    10   0528    68                             PLA                     ;GET CURRENT INITIAL
+    11   0529    A4    50                       LDY TBHD
+    12   052B    30    00                       IFPL                    ;+DIRECTION?
+    13   052D    69    00                       ADC I,0                 ;YES. ADD IN DIRECTION+CARRY
+    14   052F    B8    50    00                 ELSE
+         052C    05
+    15   0532    69    FF                       ADC I,0FF               ;NO. ADD IN DIRECTION+CARRY
+    16   0531    02                             ENDIF
+    17   0534    A0    00                       LDY I,0
+    18   0536    84    50                       STY TBHD
+    19   0538    60                             RTS
+    20                                  ;
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 32
+USER SUBROUTINES FOR IO
+
+     1                                          .SBTTL  USER SUBROUTINES FOR IO
+     2                                          .SBTTL  GET INITIALS DISPLAY
+     3   0539    20  0004'              GETDSP: JSR INFO                ;DISPLAY SCORE & LIVES INFO
+     4   053C    A9    C0                       LDA I,0C0
+     5   053E    A2    00G                      LDX I,MPLAYR            ;PLAYER
+     6   0540    20  0266'                      JSR MSGEN3
+     7   0543    CE  016E                       DEC SECUVY
+     8   0546    20  01E6'                      JSR DPLRX               ;PLAYER #
+     9   0549    A2    00G                      LDX I,MENTER            ;ENTER YOUR INITIALS
+    10   054B    20  0263'                      JSR MSGS
+    11   054E    A9    A6                       LDA I,0A6
+    12   0550    A2    00G                      LDX I,MPRMOV            ;PRESS MOVE
+    13   0552    20  0266'                      JSR MSGEN3
+    14   0555                           ZATC3S::
+    15   0555    A9    9C                       LDA I,09C
+    16   0557    A2    00G                      LDX I,MPRFIR            ;PRESS FIRE
+    17   0559    20  0266'                      JSR MSGEN3
+    18
+    19   055C    A2    00G                      LDX I,MATARI
+    20   055E    20  0263'                      JSR MSGS
+    21   0561    AD  0602                       LDA TBLIND
+    22   0564    38                             SEC
+    23   0565    ED  0604                       SBC ININDX              ;SET GLOW CODE
+    24   0568                           ZATC3E:
+    25         0013G                    ZATC3C==ZATC3E-ZATC3S
+    26   0568    4C  059D'                      JMP LDROUT              ;DISPLAY LADDER
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 34
+GET INITIALS DISPLAY
+
+     1
+     2                                          .SBTTL  DISPLAY HIGH SCORE LADDER
+     3   056B                           LDRDSP:
+     4   056B    20  0004'                      JSR INFO                ;DISPLAY SCORE & LIVES INFO
+     5                                  ;
+     6                                  ;TEST BOTH POKEY'S FOR RANDOM NUMBERS - SEQUENTIALS SHOULD
+     7                                  ;HAVE MATCHING NIBBLES
+     8                                  ;OUTPUT-ACC=0 IF ALL IS WELL
+     9                                  ;
+    10   056E                           ZPONTS::
+    11   056E    78                             SEI
+    12   056F    AD  60CA                       LDA RANDOM
+    13   0572    AC  60CA                       LDY RANDOM
+    14   0575    84    29                       STY TEMP0
+    15   0577    4A                             LSR
+    16   0578    4A                             LSR
+    17   0579    4A                             LSR
+    18   057A    4A                             LSR
+    19   057B    45    29                       EOR TEMP0
+    20   057D    85    29                       STA TEMP0
+    21   057F    AD  60DA                       LDA RANDO2
+    22   0582    AC  60DA                       LDY RANDO2
+    23   0585    58                             CLI
+    24   0586    45    29                       EOR TEMP0
+    25   0588    29    F0                       AND I,0F0
+    26   058A    45    29                       EOR TEMP0
+    27   058C    85    29                       STA TEMP0
+    28   058E    98                             TYA
+    29   058F    0A                             ASL
+    30   0590    0A                             ASL
+    31   0591    0A                             ASL
+    32   0592    0A                             ASL
+    33   0593    45    29                       EOR TEMP0
+    34   0595    8D  011F                       STA QT5                 ;NO. KILL STACK
+    35   0598    20  0673'                      JSR RNKDSP              ;DISPLAY RANKS
+    36   059B    A9    FF                       LDA I,-1                ;NO GLOW
+    37                                          .SBTTL DISPLAY HI SCORE LADDER
+    38   059D    85    63               LDROUT: STA SZL                 ;GLOW CODE (-1=NONE;ELSE=INITIALS TO GLOW)
+    39   059F    A2    00G                      LDX I,MHIGHS            ;HIGH SCORES
+    40   05A1    20  0263'                      JSR MSGS
+    41   05A4    A9    01                       LDA I,1
+    42   05A6    85    61                       STA SXL                 ;INITIAL RANK
+    43   05A8    20  082A'                      JSR NWSCA1
+    44   05AB    A9    28                       LDA I,40.
+    45   05AD    85    2C                       STA TEMP3               ;INITIAL HEIGHT
+    46   05AF    A2    15                       LDX I,3*<NHISCO-1>
+    47   05B1    86    37                       STX INDEX1
+    48                                          BEGIN                   ;LOOP FOR EACH SET OF INITIALS
+    49   05B3    20  025C'                      JSR VGCNTR
+    50   05B6    A9    00                       LDA I,0
+    51   05B8    85    73                       STA VGBRIT
+    52   05BA    A5    2C                       LDA TEMP3               ;Y COORD
+    53   05BC    AA                             TAX
+    54   05BD    38                             SEC
+    55   05BE    E9    0A                       SBC I,10.
+    56   05C0    85    2C                       STA TEMP3
+    57   05C2    A9    D0                       LDA I,0D0               ;X COORD
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 34+
+DISPLAY HI SCORE LADDER
+
+    58   05C4    20  0000G                      JSR VGVTR1              ;POSITION BEAM
+    59   05C7    A0    07                       LDY I,BLULET            ;DEFAULT BLUE
+    60   05C9    A5    63                       LDA SZL
+    61   05CB    C5    37                       CMP INDEX1
+    62   05CD    D0    00                       IFEQ                    ;SPECIAL INITIALS?
+    63   05CF    A0    00                       LDY I,WHITE             ;YES. MAKE THEM GLOW WHITE
+    64   05CE    02                             ENDIF
+    65   05D1    20  081E'                      JSR NWCOLO
+    66   05D4    A9    61                       LDA I,SXL               ;OUTPUT RANK
+    67   05D6    A0    01                       LDY I,1
+    68   05D8    20  0000G                      JSR DIGTYS
+    69   05DB    A9    A0                       LDA I,0A0
+    70   05DD    20  0000G                      JSR VGDOT
+    71   05E0    A9    00                       LDA I,0
+    72   05E2    85    73                       STA VGBRIT
+    73   05E4    AA                             TAX
+    74   05E5    A9    08                       LDA I,8
+    75   05E7    20  0000G                      JSR VGVTR1              ;SPACE
+    76   05EA    E6    61                       INC SXL
+    77   05EC    A5    37                       LDA INDEX1
+    78   05EE    20  0647'                      JSR OUTINI              ;OUTPUT INITIALS
+    79   05F1    A2    00                       LDX I,0
+    80   05F3    A9    08                       LDA I,8
+    81   05F5    20  0000G                      JSR VGVTR1              ;LEAVE SPACE
+    82   05F8    A6    37                       LDX INDEX1
+    83   05FA    BD  0706                       LDA X,HSCORL
+    84   05FD    85    56                       STA PXL
+    85   05FF    BD  0707                       LDA X,HSCORM
+    86   0602    85    57                       STA PYL
+    87   0604    BD  0708                       LDA X,HSCORH
+    88   0607    85    58                       STA PZL
+    89   0609    A9    56                       LDA I,PXL
+    90   060B    A0    03                       LDY I,3
+    91   060D    20  0000G                      JSR DIGTYS              ;OUTPUT SCORE
+    92   0610    C6    37                       DEC INDEX1
+    93   0612    C6    37                       DEC INDEX1
+    94   0614    C6    37                       DEC INDEX1
+    95   0616    10    9B                       MIEND
+    96   0618    60                             RTS
+    97                                          .SBTTL  DISPLAY BONUS INTERVAL
+    98   0619                           BOLOUT:
+    99   0619    AD  0156                       LDA BLIFIN
+   100   061C    F0    00                       IFNE                    ;BONUS LIFE?
+   101                                                                  ;YES
+   102   061E    85    58                       STA PZL                 ;SET INTERVAL
+   103   0620    A2    00G                      LDX I,MBOLIFE
+   104   0622    20  0263'                      JSR MSGS                ;BONUS LIFE EVERY
+   105   0625    A9    00                       LDA I,0
+   106   0627    85    56                       STA PXL
+   107   0629    85    57                       STA PYL
+   108   062B    A9    56                       LDA I,PXL
+   109   062D    A0    03                       LDY I,3
+   110   062F    20  0000G                      JSR DIGTYS              ;OUTPUT 10K & 20K
+   111   061D    14                             ENDIF
+   112                                          .GLOBL ZATLIC,ZATLIS
+   113   0632    18                     ZATLIV::        CLC
+   114   0633    A0    00G                      LDY I,ZATLIC
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 34+
+DISPLAY BONUS INTERVAL
+
+   115   0635    A9    85                       LDA I,085
+   116                                          BEGIN
+   117   0637    79  0000G                      ADC Y,ZATLIS
+   118   063A    88                             DEY
+   119   063B    10    FA                       MIEND
+   120   063D    85    B5                       STA QT1                 ;VERIFY ATARI LITERAL
+   121   063F    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 35
+UTILITY-DISPLAY 1 SET OF INITIALS
+
+     1                                          .SBTTL  UTILITY-DISPLAY 1 SET OF INITIALS
+     2                                  ;OUTINI	INPUT:ACC=INDEX INTO INITAL OF INITIALS
+     3                                  ;
+     4   0640    AD  0602               OUTCUR: LDA TBLIND
+     5   0643    38                             SEC
+     6   0644    ED  0604                       SBC ININDX
+     7   0647    18                     OUTINI: CLC
+     8   0648    69    02                       ADC I,2
+     9   064A    85    38                       STA INDEX2
+    10   064C    A0    00                       LDY I,0
+    11   064E    A9    02                       LDA I,2
+    12   0650    85    39                       STA INDEX3
+    13                                          BEGIN                   ;LOOP FOR EACH OF 3 INITIALS
+    14   0652    A6    38                       LDX INDEX2
+    15   0654    BD  0606                       LDA X,INITAL
+    16   0657    C9    1E                       CMP I,1E
+    17   0659    90    00                       IFCS                    ;VALID?
+    18   065B    A9    1A                       LDA I,26.               ;NO. SUBSTITUTE SPACE
+    19   065A    02                             ENDIF
+    20   065D    0A                             ASL
+    21   065E    AA                             TAX
+    22   065F    B5    16G                      LDA X,VGMSGA+22.        ;CONVERT INITIAL(0-26.)TO INDEX
+    23   0661    91    74                       STA NY,VGLIST
+    24   0663    C8                             INY
+    25   0664    B5    17G                      LDA X,VGMSGA+1+22.
+    26   0666    91    74                       STA NY,VGLIST
+    27   0668    C8                             INY
+    28   0669    C6    38                       DEC INDEX2              ;UPDATE COUNT OF VG BYTES
+    29   066B    C6    39                       DEC INDEX3
+    30   066D    10    E3                       MIEND
+    31   066F    88                             DEY
+    32   0670    4C  0000G                      JMP VGADD               ;UPDATE VGLIST POINTER
+    33
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 36
+RANK DISPLAY
+
+     1                                          .SBTTL RANK DISPLAY
+     2   0673                           RNKDSP:
+     3   0673    AD  0600                       LDA RANKS
+     4   0676    0D  0601                       ORA RANKS+1
+     5   0679    F0    00                       IFNE                    ;VALID RANKING?
+     6   067B    A2    00G                      LDX I,MRANK             ;YES
+     7   067D    20  0263'                      JSR MSGS                ;"RANKING..." MSG OUTPUT
+     8   0680    A9    63                       LDA I,99.
+     9   0682    20  06BE'                      JSR ONERNK
+    10   0685    A2    00                       LDX I,0                 ;PLAYER 1 RANK
+    11   0687    20  068C'                      JSR PL1RNK
+    12   068A    A2    01                       LDX I,1                 ;PLAYER 2 RANK
+    13                                                                  ;
+    14   068C                           PL1RNK:
+    15   068C    BD  0600                       LDA X,RANKS
+    16   068F    F0    00                       IFNE                    ;VALID RANK?
+    17   0691    48                             PHA                     ;YES.
+    18   0692    86    2E                       STX TEMPX
+    19   0694    A0    03                       LDY I,RED
+    20   0696    20  081E'                      JSR NWCOLO              ;GREEN DIGIT
+    21   0699    20  025C'                      JSR VGCNTR              ;CENTER BEAM
+    22   069C    A9    D0                       LDA I,-30
+    23   069E    A4    2E                       LDY TEMPX
+    24   06A0    BE  06BC'                      LDX Y,HITRNK
+    25   06A3    20  0000G                      JSR VGVTR1              ;POSITION BEAM
+    26   06A6    68                             PLA
+    27   06A7    20  06BE'                      JSR ONERNK              ;OUTPUT RANK
+    28   06AA    A9    A0                       LDA I,0A0
+    29   06AC    20  0000G                      JSR VGDOT               ;DOT
+    30   06AF    A9    10                       LDA I,10
+    31   06B1    A2    00G                      LDX I,MPLYR2            ;PLAYER
+    32   06B3    20  02E7'                      JSR MSGFOL
+    33   06B6    A6    2E                       LDX TEMPX
+    34   06B8    20  01ED'                      JSR DPLRXX              ;PLAYER #
+    35   0690    2A                             ENDIF
+    36   067A    40                             ENDIF
+    37   06BB    60                             RTS
+    38   06BC    C0    B0               HITRNK: .BYTE -40,-50           ;HEIGHT FOR RANK DISPLAYS
+    39   06BE    C9    63               ONERNK: CMP I,NRANKS
+    40   06C0    90    00                       IFCS                    ;MAX AT NRANKS
+    41   06C2    A9    63                       LDA I,NRANKS
+    42   06C1    02                             ENDIF
+    43   06C4    20  0244'              DSP1HX: JSR HEXBCD              ;CONVERT TO BCD
+    44   06C7    A9    29                       LDA I,TEMP0
+    45   06C9    A0    01                       LDY I,1
+    46   06CB    4C  0000G                      JMP DIGTYS              ;DISPLAY RANK
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 37
+DISPLAY PLAYER RATING REQUEST
+
+     1                                          .SBTTL  DISPLAY PLAYER RATING REQUEST
+     2
+     3   06CE                           RQRDSP:
+     4   06CE    20  0000G                      JSR COCFLI              ;COCKTAIL FLIP
+     5   06D1    CE  016E                       DEC SECUVY
+     6   06D4    A0    03                       LDY I,RED               ;SET LETTER COLOR
+     7   06D6    20  081E'                      JSR NWCOLO
+     8   06D9    A9    01                       LDA I,1
+     9   06DB    85    72                       STA VGSIZE
+    10   06DD    20  0000G                      JSR VGSCA1
+    11   06E0                           ZATC2S::
+    12   06E0    A2    00G                      LDX I,MATARI
+    13   06E2    A9    60                       LDA I,60
+    14   06E4    20  0266'                      JSR MSGEN3
+    15   06E7    20  01E1'                      JSR DPLRNO              ;PLAYER X
+    16   06EA                           ZATC2E:
+    17         000AG                    ZATC2C==ZATC2E-ZATC2S
+    18   06EA    A2    07                       LDX I,ENDMSG-MSGTAB-1
+    19   06EC    86    37                       STX INDEX1
+    20                                          BEGIN                   ;LOOP FOR EACH MESSAGE
+    21   06EE    A4    37                       LDY INDEX1
+    22   06F0    BE  07E8'                      LDX Y,MSGTAB            ;MESSAGE ID
+    23   06F3    20  0263'                      JSR MSGS                ;DISPLAY MESSAGE
+    24   06F6    C6    37                       DEC INDEX1
+    25   06F8    10    F4                       MIEND
+    26                                  ;
+    27                                  ;IF CURSOR IS AT EDGE OF VISIBLE SCREEN, TRY TO SCROLL
+    28                                  ;
+    29   06FA    AD  0200                       LDA CURSL1              ;ACTUAL CURSOR POSITION
+    30   06FD    38                             SEC
+    31   06FE    E5    7B                       SBC LEFSID
+    32   0700    10    00                       IFMI
+    33   0702    C6    7B                       DEC LEFSID
+    34   0704    C6    7C                       DEC RITSID
+    35   0706    B8    50    00                 ELSE
+         0701    07
+    36   0709    D0    00                       IFEQ                    ;AT LEFT SIDE OF VISIBLE SCREEN?
+    37   070B    C6    7C                       DEC RITSID              ;YES. TRY TO SCROLL LEFT
+    38   070D    C6    7B                       DEC LEFSID
+    39   070F    10    00                       IFMI                    ;VALID?
+    40   0711    E6    7B                       INC LEFSID              ;NO. UNSCROLL
+    41   0713    E6    7C                       INC RITSID
+    42   0710    04                             ENDIF
+    43   0715    B8    50    00                 ELSE
+         070A    0D
+    44   0718    A5    7C                       LDA RITSID              ;NO.
+    45   071A    CD  0127                       CMP HIRATE
+    46   071D    F0    02                       BEQ YES                 ;DISPLAY NEXT ONE
+    47   071F    B0    00                       IFCC                    ;AT RIGHT SIDE OF VISIBLE SCREEN?
+    48   0721    38                     YES:    SEC                     ;YES.
+    49   0722    ED  0200                       SBC CURSL1
+    50   0725    D0    00                       IFEQ
+    51   0727    18                             CLC
+    52   0726    01                             ENDIF
+    53   0728    B0    00                       IFCC                    ;SCROLL RIGHT VALID?
+    54   072A    E6    7B                       INC LEFSID              ;YES. SCROLL
+    55   072C    E6    7C                       INC RITSID
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 37+
+DISPLAY PLAYER RATING REQUEST
+
+    56   0729    04                             ENDIF
+    57   0720    0D                             ENDIF
+    58   0717    16                             ENDIF
+    59   0708    25                             ENDIF
+    60   072E    A5    7C                       LDA RITSID
+    61   0730    85    3A                       STA INDEX4
+    62   0732    A2    04                       LDX I,4
+    63   0734    86    37                       STX INDEX1
+    64                                          BEGIN
+    65   0736    A0    05                       LDY I,GREEN
+    66   0738    20  081E'                      JSR NWCOLO
+    67   073B    A9    00                       LDA I,0
+    68   073D    85    73                       STA VGBRIT
+    69   073F    20  025C'                      JSR VGCNTR              ;DISPLAY LEVEL #
+    70   0742    A2    D8                       LDX I,-40.
+    71   0744    A4    37                       LDY INDEX1
+    72   0746    B9  07E3'                      LDA Y,XPOTAB
+    73   0749    18                             CLC
+    74   074A    69    F8                       ADC I,0F8
+    75   074C    20  0000G                      JSR VGVTR1              ;-GET INTO POSITION
+    76   074F    A6    3A                       LDX INDEX4
+    77   0751    BC  0000G                      LDY X,LEVEL
+    78   0754    C0    63                       CPY I,99.
+    79   0756    B0    00                       IFCC                    ;IN RANGE?
+    80   0758    C8                             INY                     ;YES
+    81   0759    98                             TYA
+    82   075A    20  06C4'                      JSR DSP1HX              ;-OUTPUT LEVEL #
+    83   075D    A0    03                       LDY I,RED
+    84   075F    20  081E'                      JSR NWCOLO
+    85   0762    20  025C'                      JSR VGCNTR              ;DISPLAY BONUS POINTS
+    86   0765    A2    BA                       LDX I,-70.
+    87   0767    A4    37                       LDY INDEX1
+    88   0769    B9  07E3'                      LDA Y,XPOTAB
+    89   076C    18                             CLC
+    90   076D    69    EC                       ADC I,0EC
+    91   076F    20  0000G                      JSR VGVTR1              ;-GET INTO POSITION
+    92   0772    A6    3A                       LDX INDEX4
+    93   0774    20  0813'                      JSR BODSPL              ;DISPLAY BONUS
+    94                                                                  ;-OUTPUT POINTS
+    95   0777    20  025C'                      JSR VGCNTR
+    96   077A    A2    CC                       LDX I,0CC
+    97   077C    A4    37                       LDY INDEX1
+    98   077E    B9  07E3'                      LDA Y,XPOTAB
+    99   0781    18                             CLC
+   100   0782    69    00                       ADC I,0
+   101   0784    20  0000G                      JSR VGVTR1              ;POSITION BEAM
+   102   0787    A6    3A                       LDX INDEX4              ;DISPLAY HOLE
+   103   0789    BD  0000G                      LDA X,LEVEL
+   104   078C    20  0000G                      JSR DSPHOL
+   105   0757    37                             ENDIF
+   106   078F    C6    3A                       DEC INDEX4
+   107   0791    C6    37                       DEC INDEX1
+   108   0793    10    A1                       MIEND
+   109                                                                  ;DISPLAY TIME LEFT
+   110   0795    A9    00                       LDA I,0
+   111   0797    85    73                       STA VGBRIT
+   112   0799    20  025C'                      JSR VGCNTR
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 37+
+DISPLAY PLAYER RATING REQUEST
+
+   113   079C    A2    00G                      LDX I,MTIME             ;"TIME"
+   114   079E    20  0263'                      JSR MSGS
+   115   07A1    A9    04                       LDA I,QTMPAUS
+   116   07A3    A0    01                       LDY I,1
+   117   07A5    20  0000G                      JSR DIGTYS              ;-OUTPUT SECONDS
+   118                                                                  ;DISPLAY CURSOR
+   119                                                                  ;DISPLAY BOX AROUND LEVEL
+   120                                                                  ;
+   121   07A8    A0    00                       LDY I,WHITE
+   122   07AA    20  081E'                      JSR NWCOLO              ;CURSOR COLOR
+   123   07AD    20  025C'                      JSR VGCNTR              ;
+   124   07B0    A2    B8                       LDX I,0B8               ;
+   125   07B2    20  07F8'                      JSR GETCUR              ;GET CURSOR POS.
+   126   07B5    38                             SEC                     ;MAKE IT RELATIVE
+   127   07B6    E5    7B                       SBC LEFSID
+   128   07B8    A8                             TAY
+   129   07B9    B9  07E3'                      LDA Y,XPOTAB
+   130   07BC    38                             SEC
+   131   07BD    E9    16                       SBC I,16
+   132   07BF    20  0000G                      JSR VGVTR1              ;POSITION BEAM AT UPPER RIGHT CORNER OF LEVEL
+   133   07C2    A9    E0                       LDA I,0E0
+   134   07C4    85    73                       STA VGBRIT              ;BEAM ON
+   135   07C6    A2    00                       LDX I,0         ;BALL INTO DRAW BOX
+   136                                  ;DRAW BOX: X=INDEX INTO BOXTAB OF 1ST SET OF OFFSETS IN BOX
+   137                                  ;
+   138                                  ;
+   139   07C8    86    38               DOBOX:  STX INDEX2
+   140   07CA    A0    03                       LDY I,3
+   141   07CC    84    37                       STY INDEX1
+   142                                          BEGIN                   ;LOOP FOR EACH SIDE OF BOX
+   143   07CE    A4    38                       LDY INDEX2
+   144   07D0    B9  07F0'                      LDA Y,BOXTAB
+   145   07D3    AA                             TAX
+   146   07D4    C8                             INY
+   147   07D5    B9  07F0'                      LDA Y,BOXTAB
+   148   07D8    C8                             INY
+   149   07D9    84    38                       STY INDEX2
+   150   07DB    20  0000G                      JSR VGVTR1
+   151   07DE    C6    37                       DEC INDEX1
+   152   07E0    10    EC                       MIEND
+   153   07E2    60                             RTS
+   154
+   155   07E3    BE    E3    09    30   XPOTAB: .BYTE 0BE,0E3,09,30,58
+         07E7    58
+   156   07E8    00G   00G   00G        MSGTAB: .BYTE MRATE,MPRMOV,MPRFIR       ;RATE MESSAGES
+   157   07EB    00G   00G   00G                .BYTE MNOVIC,MEXPER,MLEVEL
+   158   07EE    00G   00G                      .BYTE MHOLE,MBONUS
+   159   07F0                           ENDMSG:
+   160   07F0    00    26               BOXTAB: .BYTE 0, 26
+   161   07F2    28    00                       .BYTE 28, 0
+   162   07F4    00    DA                       .BYTE 0,-26
+   163   07F6    D8    00                       .BYTE -28,0
+   164   07F8                           GETCUR:
+   165   07F8    AD  0200                       LDA CURSL1              ;CURRENT POSITION
+   166   07FB    20  051D'                      JSR GINICO              ;UPDATE POSITION
+   167   07FE    A8                             TAY
+   168   07FF    10    00                       IFMI                    ;APPLY LIMITS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 37+
+DISPLAY PLAYER RATING REQUEST
+
+   169   0801    A9    00                       LDA I,0                 ;MIN
+   170   0803    B8    50    00                 ELSE
+         0800    05
+   171   0806    CD  0127                       CMP HIRATE
+   172   0809    90    00                       IFCS
+   173   080B    AD  0127                       LDA HIRATE              ;MAX
+   174   080A    03                             ENDIF
+   175   0805    08                             ENDIF
+   176   080E    8D  0200                       STA CURSL1              ;NEW POSITION
+   177   0811    A8                             TAY
+   178   0812    60                             RTS
+   179   0813    8A                     BODSPL: TXA
+   180   0814    20  0000G                      JSR BONSCO              ;SET UP BONUS SCORE
+   181   0817    A9    29                       LDA I,TEMP0
+   182   0819    A0    03                       LDY I,3
+   183   081B    4C  0000G                      JMP DIGTYS
+   184                                                                  ;INPUT: Y=NEW COLOR
+   185   081E    C4    9E               NWCOLO: CPY COLOR               ;CHANGE COLOR IF NECESSARY
+   186   0820    F0    00                       IFNE
+   187   0822    84    9E                       STY COLOR
+   188   0824    A9    08                       LDA I,8                 ;CHANGE COLOR FLAG
+   189   0826    4C  0000G                      JMP VGSTAT
+   190   0821    07                             ENDIF
+   191   0829    60                             RTS
+   192                                                                  ;INPUT: ACC=NEW BINARY SCALE
+   193   082A    C5    72               NWSCA1: CMP VGSIZE
+   194   082C    F0    00                       IFNE                    ;CHANGE BINARY SCALE IF NECESSARY
+   195   082E    85    72                       STA VGSIZE
+   196   0830    4C  0000G                      JMP VGSCA1
+   197   082D    05                             ENDIF
+   198   0833    60                             RTS
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 38
+LOGO INITIALIZATION
+
+     1                                          .SBTTL  LOGO INITIALIZATION
+     2   0834                           LOGINI:
+     3   0834    A9    0A                       LDA I,CPAUSE            ;GAME STATE:PAUSE FOR ENTIRE LOGO
+     4   0836    85    00                       STA QSTATE
+     5   0838    A9    00                       LDA I,CNEWGA            ;THEN GO TO GAME
+     6   083A    85    02                       STA QNXTST
+     7   083C    A9    DF                       LDA I,0DF
+     8   083E    85    04                       STA QTMPAUS
+     9   0840    A9    12                       LDA I,CDBOXP            ;FIRST DO SHRINKING BOX RAINBOW
+    10   0842    85    01                       STA QDSTATE
+    11   0844    A9    19                       LDA I,19                        ;STARTING  CLOSE
+    12   0846    8D  014E                       STA FARY
+    13   0849    A9    18                       LDA I,18
+    14   084B    8D  014D                       STA NEARY
+    15   084E    60                             RTS
+    16                                  ;
+    17         0008                     FARINC  =8
+    18         0008                     NERINC  =8
+    19                                          .SBTTL  LOGO-SHRINKING BOX RAINBOW
+    20   084F                           BOXPRO:
+    21   084F    A9  0001G                      LDAH VORBOX+1
+    22   0851    A2    00                       LXL VORBOX
+         0852  0000G
+    23                                                                  ;SET PIC TO USE
+    24   0853    20  08A7'                      JSR SCARNG              ;DRAW RAINBOW OF BOX
+    25   0856    AD  014E                       LDA FARY
+    26   0859    C9    A0                       CMP I,0A0
+    27   085B    B0    00                       IFCC                    ;FAR PT. PAST DESTINATION?
+    28   085D    69    14                       ADC I,14                ;NO. MOVE IT FARTHER
+    29   085F    8D  014E                       STA FARY
+    30   085C    05                             ENDIF
+    31   0862    C9    50                       CMP I,50
+    32   0864    90    00                       IFCS                    ;FOR PT. PAST PT. WHERE NEAR PT. MOVES?
+    33   0866    AD  014D                       LDA NEARY               ;YES. MOVE NEAR PT. FARTHER
+    34   0869    18                             CLC
+    35   086A    69    08                       ADC I,FARINC
+    36   086C    8D  014D                       STA NEARY
+    37   086F    CD  014E                       CMP FARY
+    38   0872    90    00                       IFCS                    ;NEAR PT. PAST FAR PT.?
+    39   0874    A9    A0                       LDA I,0A0               ;YES.
+    40   0876    8D  014D                       STA NEARY
+    41   0879    A9    14                       LDA I,CDLOGP            ;NOW DO GROWING LOGO
+    42   087B    85    01                       STA QDSTATE
+    43   0873    09                             ENDIF
+    44   0865    17                             ENDIF
+    45   087D    60                             RTS
+    46                                          .SBTTL  LOGO - LOGO RAINBOW
+    47   087E                           LOGPRO:                         ;APPROACHING LOGO PROCESS
+    48   087E    A9  0001G                      LDAH VORLIT+1
+    49   0880    A2    00                       LXL VORLIT
+         0881  0000G
+    50                                                                  ;SET PICTURE TO USE
+    51   0882    20  08A7'                      JSR SCARNG              ;DRAW RAINBOW OF LOGO
+    52   0885    AD  014D                       LDA NEARY
+    53   0888    C9    30                       CMP I,30
+    54   088A    90    00                       IFCS                    ;NEAR PT. PAST DESTINATION?
+    55   088C    E9    01                       SBC I,1                 ;NO. BRING IT CLOSER
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 38+
+LOGO - LOGO RAINBOW
+
+    56   088E    8D  014D                       STA NEARY
+    57   088B    05                             ENDIF
+    58   0891    C9    80                       CMP I,80
+    59   0893    B0    00                       IFCC                    ;NEAR PT. PAST PT. WHERE FAR PT. MOVES?
+    60   0895    AD  014E                       LDA FARY                ;YES. BRING FAR PT. CLOSER
+    61   0898    38                             SEC
+    62   0899    E9    01                       SBC I,1
+    63   089B    CD  014D                       CMP NEARY
+    64   089E    B0    00                       IFCC                    ;FAR PT PAST NEAR?
+    65   08A0    AD  014D                       LDA NEARY               ;YES. SET AT NEAR PT
+    66   089F    03                             ENDIF
+    67   08A3    8D  014E                       STA FARY
+    68   0894    11                             ENDIF
+    69   08A6    60                             RTS
+    70                                          .SBTTL  LOGO RAINBOW BUILDER
+    71   08A7                           SCARNG:
+    72   08A7    85    57                       STA PYL                 ;POINTER TO PICTURE SUBR
+    73   08A9    86    56                       STX PXL
+    74   08AB    AD  014D                       LDA NEARY
+    75   08AE    85    37                       STA INDEX1
+    76   08B0    CE  016E                       DEC SECUVY
+    77                                          BEGIN                   ;LOOP FROM FAR PT. TO NEAR PT.
+    78   08B3    A5    37                       LDA INDEX1              ;SCALE IS A FUNCTION OF DISTANCE
+    79   08B5    0A                             ASL
+    80   08B6    0A                             ASL
+    81   08B7    29    7F                       AND I,7F                ;LINEAR SCALE
+    82   08B9    A8                             TAY
+    83   08BA    A5    37                       LDA INDEX1
+    84   08BC    4A                             LSR
+    85   08BD    4A                             LSR
+    86   08BE    4A                             LSR
+    87   08BF    4A                             LSR
+    88   08C0    4A                             LSR                     ;BINARY SCALE
+    89   08C1    20  0000G                      JSR VGSCAL
+    90   08C4    A5    37                       LDA INDEX1              ;COLOR DEPENDS ON POSITION IN RAINBOW
+    91   08C6    CD  014D                       CMP NEARY
+    92   08C9    D0    00                       IFEQ                    ;LEADING PT.?
+    93   08CB    A9    00                       LDA I,WHITE             ;YES. MAKE IT MOST VISIBLE
+    94   08CD    B8    50    00                 ELSE
+         08CA    05
+    95   08D0    4A                             LSR
+    96   08D1    4A                             LSR
+    97   08D2    4A                             LSR
+    98   08D3    EA                             NOP
+    99   08D4    29    07                       AND I,7                 ;NO FOLLOWERS
+   100   08D6    C9    07                       CMP I,7
+   101   08D8    D0    00                       IFEQ
+   102   08DA    A9    03                       LDA I,RED               ;USE RED FOR BLACK
+   103   08D9    02                             ENDIF
+   104   08CF    0C                             ENDIF
+   105   08DC    A8                             TAY
+   106   08DD    A9    68                       LDA I,68
+   107   08DF    20  0000G                      JSR VGSTAT              ;SET COLOR
+   108   08E2    A5    57                       LDA PYL
+   109   08E4    A6    56                       LDX PXL
+   110   08E6    20  0000G                      JSR VGJSRL              ;DRAW PICTURE AT PT.
+   111   08E9                           ZATC1S::
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 38+
+LOGO RAINBOW BUILDER
+
+   112   08E9    A5    37                       LDA INDEX1
+   113   08EB    18                             CLC
+   114   08EC    69    02                       ADC I,2
+   115   08EE    85    37                       STA INDEX1
+   116   08F0    CD  014E                       CMP FARY
+   117   08F3    90    BE                       CSEND                   ;EXIT IF PAST NEAR PT.
+   118   08F5    A2    00G                      LDX I,MATARI
+   119   08F7    A9    D0                       LDA I,0D0
+   120   08F9    20  0266'                      JSR MSGEN3              ;DISPLAY COPYRIGHT LOGO
+   121   08FC    A9  0001G                      LDAH KILLER+1
+   122   08FE    A2    00                       LXL KILLER
+         08FF  0000G
+   123   0900                           ZATC1E:
+   124   0900    4C  0000G                      JMP VGJSRL              ;DEFEAT BEAM KILLER
+   125         0017G                    ZATC1C==ZATC1E-ZATC1S
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 39
+LOGO RAINBOW BUILDER
+
+     1
+     2                                          HLL65
+     3         0001'                            .END
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 39+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		ANYWAY  011A R 		AUDCTL= 60C8
+AUDC1 = 60C1   		AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8
+BFACTR  0078   		BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007
+BODSPL  0813 R 		BOFLAS  0124   		BOLOUT  0619 RG		BONDRY= ****  G		BONSCO= ****  G
+BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D   		BOOMTI  010E
+BOXPRO  084F RG		BOXTAB  07F0 R 		BUFACT  0415   		BUFRDY  0054   		CAMPC   010B
+CAMSTA  010C   		CBLANK= 001A   		CBOOM = 0024   		CBUF1 = 0078   		CDBOOM= 0004
+CDBOXP= 0012   		CDGETI= 0006   		CDGOVR= 000C   		CDHITB= 000A   		CDLADR= 0014
+CDLOGP= 0014   		CDPLAY= 0000   		CDPLPL= 000E   		CDPRST= 0010   		CDREQR= 0008
+CDROP = 0020   		CDSYST= 0002   		CD2GAM= 0016   		CENDGA= 0008   		CENDLI= 0006
+CENDWA= 000E   		CGETIN= 0012   		CHACHA  00A7   		CHACOU  0135   		CHAINV  00A8
+CHARCO  02F2   		CHARL1  02AD   		CHARL2  02C0   		CHARY   02D3   		CHARYL  02E6
+CHISCH= 0010   		CINIRA= 001C   		CLOGO = 001A   		CLRSCO= ****  G		CNEWAV= 000C
+CNEWGA= 0000   		CNEWLI= 0002   		CNEWV2= 0018   		CNOTFO= 0014   		CNWLF2= 001E
+COCFLI= ****  G		COCKTA= 0010   		COCTAL  0117   		COLOR   009E   		COLPOR= 0800
+COLRAM  0019   		CPAUSE= 000A   		CPLAY = 0004   		CREQRA= 0016   		CSYSTM= 0022
+CURCOL= 0001   		CURMOD  0106   		CURNTX  006A   		CURNTY  006C   		CURSL1  0200
+CURSL2  0201   		CURSPO  0051   		CURSVH  0105   		CURSVL  0104   		CURSY   0202
+CURSYL  0107   		CURWAV  009F   		DBOLOU  021A R 		DBSW    004C   		DEPCOL= 0006
+DGOVER  01B1 RG		DIGTYS= ****  G		DOBOX   07C8 R 		DPLPLA  01A9 RG		DPLRNO  01E1 R
+DPLRX   01E6 R 		DPLRXX  01ED R 		DPRSTA  01BE RG		DSPCRD  01F7 RG		DSPHOL= ****  G
+DSP1HX  06C4 R 		D2GAME  01C8 RG		D70MSK= ****  G		EABAD = ****  G		EACTL = 6040
+EADAL = 6000   		EAIN  = 6050   		ELICNT  0123   		EMCTRS= 0003   		ENDMSG  07F0 R
+ENGMSG= ****  G		ENSIZE  0151   		ESHCOU  00A6   		EXICAM  010A   		EXL     005E
+EXPCOL= 0000   		EXPCOU  0116   		EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302
+EXPLOY  030A   		EYEFAC  0065   		EYH     005B   		EYL     005F   		EYLDES  005D
+EYLL    005C   		EZL     0060   		FARINC= 0008   		FARY    014E   		FBLUE = 000B
+FGREEN= 0007   		FLASH = 000F   		FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142
+FRED  = 000C   		FRTIMR  0053   		FUSECO  0146   		GAMOP1  071E   		GAMOP3  071F
+GAMSTA  036F RG		GENPLA  01B8 R 		GETCUR  07F8 RG		GETDSP  0539 RG		GETINI  04BD RG
+GINICO  051D RG		GREEN = 0005   		HALF  = ****  G		HARDWA= 6000   		HEXBCD  0244 R
+HIILOC= ****  G		HIRATE  0127   		HISCHK  038E RG		HISLOC= ****  G		HITRNK  06BC R
+HIWAVE  0126   		HRANKH= 0620   		HRANKL  061E   		HRANKM= 061F   		HRED  = 000D
+HSCORH= 0708   		HSCORL= 0706   		HSCORM= 0707   		ICHCOL= 0000   		IHALF   0242 R
+ILINDD= 00F0   		ILINLI= 0010   		INBOOM= ****  G		INCCOU  0109   		INDEX1  0037
+INDEX2  0038   		INDEX3  0039   		INDEX4  003A   		INDUCE  0385 R 		INDYHI  003C
+INDYLO  003B   		INFO    0004 RG		INICHK  02F1 RG		INIINI  02FB RG		INIIN2  02FE R
+INILIT= ****  G		ININDX  0604   		INITAL  0606   		INITEM  0162 RG		INMCOU  0108
+INOP0 = 0D00   		INOP1 = 0E00   		INPUT   004A   		INTACK= 5000   		INTENS  0098
+INTIME  0128   		INTLDR  0471 R 		INVABI= 0007   		INVACT  02A6   		INVAC1  0283
+INVAC2  028A   		INVAL1  02B9   		INVAL2  02CC   		INVAY   02DF   		INVAYL  029F
+INVCAM  0291   		INVCAR= 0003   		INVCOL= 0003   		INVDIR= 0080   		INVFIR= 0040
+INVLOO  0298   		INVMOT= 0080   		INVROT= 0040   		INVSEQ= 0018   		IN1   = 0C00
+ITIMHI= 0060   		KILLER= ****  G		LDRDSP  056B RG		LDROUT  059D R 		LEDOFF= 0003
+LEFSID  007B   		LETCOL= 0005   		LEVEL = ****  G		LEVELY  010F   		LIFSXH  035A
+LIFSXL  036A   		LIFSZH  037A   		LIFSZL  038A   		LINANG  03EE   		LINEX   03CE
+LINEXM  0435   		LINEY   03AC   		LINEZ   03DE   		LINEZM  0445   		LINSCA  0059
+LINSTA  039A   		LINSXH  031A   		LINSXL  032A   		LINSZH  033A   		LINSZL  034A
+LITRAL  00AC   		LIVES1  0048   		LIVES2  0049   		LIVLOC= ****  G		LOGINI  0834 RG
+LOGPRO  087E RG		LSCORH  0042   		LSCORL  0040   		LSCORM  0041   		LSYMBL= ****  G
+LSYMB0= ****  G		LVSGAM  0158   		MAH   = 6081   		MAL   = 6080   		MAPROA= ****  G
+MATARI= ****  G		MATRAC= 0080   		MBH   = 6083   		MBL   = 6082   		MBOLIF= ****  G
+MBONPT= ****  G		MBONUS= ****  G		MBSTAR= 6080   		MCMODE= ****  G		MCMOD1= ****  G
+MCMOD2= ****  G		MCMOD3= ****  G		MCOINC= 0002   		MCOINL= 0004   		MCOINR= 0001
+MCREDI= ****  G		MDITES= 0020   		MDYPL = 6098   		MECHS = 0003   		MEH   = 6085
+MEL   = 6084   		MENTER= ****  G		MEXPER= ****  G		MFAKE = 0080   		MFH   = 6087
+MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004   		MGAMOV= ****  G		MGTMOD= 0040
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 39+
+SYMBOL TABLE
+
+MHALT = 0040   		MHIGHS= ****  G		MHOLE = ****  G		MINSER= ****  G		MLCCNT= 0004
+MLED1 = 0002   		MLED2 = 0001   		MLEVEL= ****  G		MMCCNT= 0002   		MNL   = 608C
+MNOVIC= ****  G		MOPTI4= 0020   		MOPT13= 0007   		MPLAY = ****  G		MPLAYR= ****  G
+MPLYR2= ****  G		MPRESS= ****  G		MPRFIR= ****  G		MPRMOV= ****  G		MRANK = ****  G
+MRATE = ****  G		MRCCNT= 0001   		MSGENT  0287 R 		MSGEN2  028A R 		MSGEN3  0266 R
+MSGFOL  02E7 R 		MSGLBS= ****  G		MSGNOP  029C R 		MSGS    0263 RG		MSGTAB  07E8 R
+MSPIKE= ****  G		MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040   		MSUPZA= ****  G
+MSUZA = 0008   		MSZXD = 6094   		MTEMP   0031   		MTEST = 0010   		MTIME = ****  G
+MVINVX= 0008   		MVINVY= 0010   		MXH   = 6089   		MXL   = 6088   		MXPH  = 6096
+MXPL  = 6095   		MYHIGH= 6070   		MYLOW = 6060   		MZHH  = 6090   		MZHL  = 608F
+MZLH  = 608E   		MZLL  = 608D   		M2GAME= ****  G		M3KHTI= 0080   		NCHARG= 000C
+NEARY   014D   		NEOFLI  014F   		NERINC= 0008   		NEWAIT  00A3   		NEWPLA  003F
+NEXPLO= 0008   		NGAMES  0100   		NGAME0  040E   		NGAMIH  040D   		NGAMIL  040C
+NGAM2H  0410   		NGAM2L  040F   		NGAM20  0411   		NGAVGH  0413   		NGAVGL  0412
+NGAVGZ  0414   		NHISCO= 0008   		NICHAR= 0004   		NINVAD= 0007   		NLINES= 0010
+NNYMPH= 0040   		NPARTI= 0010   		NPCHAR= 0008   		NPLANE= 0008   		NPLAYR  0101
+NRANKS= 0063   		NROMS = 000C   		NUMPLA  003E   		NWCOLO  081E R 		NWDIGS  0126 R
+NWHEXZ  014B R 		NWNYMC  015B   		NWSCA1  082A R 		NWTELI  015A   		NYMCOL= 000C
+NYMCOU  03AB   		NYMPL   0203   		NYMPY   0243   		OBJIND  0055   		OCURSL  00A5
+OFRTIM  00A4   		OLDLHI  00AB   		OLDLLO  00AA   		OLOFLI  0150   		OM2GAM= 0001
+ONERNK  06BE R 		OPFLIP  013D   		OPFUSE  0141   		OPPULS  013E   		OPSPIN  0140
+OPTANK  013F   		OPTIN1  0009   		OPTIN2  000A   		OPTIN3  016A   		OTB     0052
+OUTANK= 60E0   		OUTCUR  0640 R 		OUTINI  0647 R 		OUT0  = 4000   		PARLIX  0203
+PARLIY  0223   		PARLIZ  0243   		PARLXA= 0020   		PARLXV  02C3   		PARLYA= 0020
+PARLYV  02E3   		PARLZA= 0020   		PARLZV  0303   		PARTIX  0263   		PARTIY  0283
+PARTIZ  02A3   		PARTXA= 0000   		PARTXV  0323   		PARTYA= 0000   		PARTYV  0343
+PARTZA= 0000   		PARTZV  0363   		PCHCOL= 0001   		PCVELO= 0009   		PDIRED= 000B
+PDIWHI= 0009   		PDIYEL= 000A   		PLAGRO  0115   		PLANEY  03FE   		PLAYUP  003D
+PL1RNK  068C R 		POKEY = 60C0   		POKEY2= 60D0   		POTGO = 60CB   		POTGO2= 60DB
+PROG  = 9000   		PSCALE  016B   		PSHCTR= 0008   		PUCHDE  00B2   		PULPOT  0157
+PULSCO  0143   		PULSON  0148   		PULTIM  0147   		PULVEL= FEA0   		PURPLE= 0002
+PXL     0056   		PYL     0057   		PZL     0058   		QDSTAT  0001   		QFRAME  0003
+QNXTST  0002   		QSTATE  0000   		QSTATU  0005   		QTMPAU  0004   		QT1     00B5
+QT2     016C   		QT3     0455   		QT4     0720   		QT5     011F   		QT6     011B
+QUASEC= 0005   		RANDOM= 60CA   		RANDO2= 60DA   		RANKS   0600   		RED   = 0003
+RITSID  007C   		RNKDSP  0673 R 		ROMSTA= 3000   		ROTDIS  0114   		ROTFLG  0113
+RQRDSP  06CE RG		RSCORH  0045   		RSCORL  0043   		RSCORM  0044   		RUNGVG  00B0
+SAVEND  03CE   		SAVEP   03BC   		SAVEX   0035   		SAVEY   0036   		SCALOC= ****  G
+SCARNG  08A7 R 		SCECOU= ****  G		SCFL    0079   		SCLEVE= ****  G		SCOBUF= ****  G
+SCOINI  0357 R 		SCOLOC= ****  G		SCORES= ****  G		SCOSOL  00CC R 		SECOND= 0014
+SECOPH  040B   		SECOPL  0409   		SECOPM  040A   		SECOUH  0408   		SECOUL  0406
+SECOUM  0407   		SECUVG  00B6   		SECUVY  016E   		SKCTL = 60CF   		SKCTL2= 60DF
+SPACG = 0000   		SPARE3  0133   		SPBINA  013A   		SPFTIM  013C   		SPINCO  0145
+SPLINE  0139   		SPOKST  0425   		SPXIND  013B   		SUBCOU  0099   		SUZCNT  03AA
+SUZTIM  0125   		SVGLIS  0076   		SWAPVG= ****  G		SWFINA  004E   		SWRELE  004F
+SWSTAT  004D   		SWSTRT  004D   		SXH     0062   		SXL     0061   		SYM   = 6092
+SZH     0064   		SZL     0063   		S1    = 08B3 R 		S2    = 08CE R 		S3    = 08D8 R
+S4    = 0728 R 		S5    = 0432 R 		S6    = 03DF R 		TANCOL= 0002   		TANKCO  0144
+TBHD    0050   		TBLIND  0602   		TCMFLG  00A2   		TCOMOD  0000 R 		TEMPL   002A
+TEMPX   002E   		TEMPY   002F   		TEMPZ   0030   		TEMP0   0029   		TEMP1   002A
+TEMP2   002B   		TEMP3   002C   		TEMP4   002D   		TIMHIS  0605   		TNKOUT  00A1
+TOUT0   00B4   		TRACOL= 0005   		TSLAMR  000B   		TURQOI= 0004   		TYPCOD  015E
+UNITXH  009B   		UNITXL  009A   		UNITZH  009D   		UNITZL  009C   		UPSCLI  00CE R
+VECRAM= 2000   		VGADD = ****  G		VGADD2= ****  G		VGBRIT  0073   		VGCNTR  025C R
+VGDOT = ****  G		VGHEXZ= ****  G		VGJSRL= ****  G		VGLIST  0074   		VGMSGA= ****  G
+VGRTSL= ****  G		VGSCAL= ****  G		VGSCA1= ****  G		VGSIZE  0072   		VGSTAR= 4800
+VGSTAT= ****  G		VGSTOP= 5800   		VGVTR = ****  G		VGVTR1= ****  G		VGY     00A9
+ALSCOR-SCORE MODULE	ATARI MAC65 VM03.09  00:01:14 PAGE 39+
+SYMBOL TABLE
+
+VORBOX= ****  G		VORLIT= ****  G		WAVEN1  0046   		WAVEN2  0047   		WCHAMX  011A
+WCHARF  0119   		WCHARI  0118   		WCHARL  0120   		WELCOL= 0006   		WELLID  0112
+WELTYP  0111   		WFLICA  015D   		WFLMAX  012E   		WFLMIN  0129   		WFUFRQ  015F
+WFUMAX  0132   		WFUMIN  012D   		WFUSCH  0159   		WFUSIH= 0169   		WFUSIL= 0164
+WHITE = 0000   		WINVIL  0160   		WINVIN  0165   		WINVJM  011D   		WINVMX  011C
+WNYMMX  011E   		WPULCA  015C   		WPULFI  016D   		WPUMAX  012F   		WPUMIN  012A
+WRBOOK= ****  G		WRHIIN= ****  G		WSPMAX  0131   		WSPMIN  012C   		WTACAR  0149
+WTAMAX  0130   		WTAMIN  012B   		WTCHDG= 5000   		WTFMAX  0136   		WTTFRA  00B3
+XADJL   0066   		XCOMP   006E   		XPOTAB  07E3 R 		X0H     0080   		X0L     0078
+X1H     0081   		X1L     0079   		X2H     0082   		X2L     007A   		X3H     0083
+X3L     007B   		X4H     0084   		X4L     007C   		X5H     0085   		X5L     007D
+X6H     0086   		X6L     007E   		X7H     0087   		X7L     007F   		YCOMP = 0070
+YDEUNI  00A0   		YELLOW= 0001   		YES     0721 R 		ZABFLI= 0000   		ZABFUS= 0004
+ZABPUL= 0001   		ZABTAN= 0002   		ZABTRA= 0003   		ZADEST  0121   		ZADJL   0068
+ZAPCOL= 0000   		ZATC1C= 0017  G		ZATC1E  0900 R 		ZATC1S  08E9 RG		ZATC2C= 000A  G
+ZATC2E  06EA R 		ZATC2S  06E0 RG		ZATC3C= 0013  G		ZATC3E  0568 R 		ZATC3S  0555 RG
+ZATC4C= 000A  G		ZATC4E  0227 R 		ZATC4S  021D RG		ZATC4V  006B RG		ZATLIC= ****  G
+ZATLIS= ****  G		ZATLIV  0632 RG		ZBLACK= 000F   		ZBLUE = 000B   		ZCARFL= 0001
+ZCARFU= 0003   		ZCARNO= 0000   		ZCARPU= 0002   		ZDIRDO= 0080   		ZDIRUP= 0000
+ZFIRNO= 0000   		ZFIRYE= 0040   		ZGREEN= 0007   		ZMOTJM= 0080   		ZMOTMO= 0000
+ZPNLOC  00AE   		ZPOFFS  00AF   		ZPONTS  056E RG		ZPURPL= 0008   		ZRED  = 000C
+ZROCCW= 0040   		ZROTCW= 0000   		ZSECL0  0275 RG		ZTURQO= 0003   		ZWHITE= 0000
+ZYELLO= 0004   		Z0H     0090   		Z0L     0088   		Z1H     0091   		Z1L     0089
+Z2H     0092   		Z2L     008A   		Z3H     0093   		Z3L     008B   		Z4H     0094
+Z4L     008C   		Z5H     0095   		Z5L     008D   		Z6H     0096   		Z6L     008E
+Z7H     0097   		Z7L     008F   		$BC     0018   		$BCCNT  0016   		$CCTIM  0013
+$CMODE  0009   		$CNCT   0017   		$CNSTT  000D   		$COINA  0008   		$INTCT  0007
+$LAM    0008   		$LMBIT= 0008   		$LMTIM  000C   		$PSTSL  0010   		$TEST   0008
+$$CRDT  0006   		.Z.   = 0002   		..N   = 0018   		..X   = 0004   		...RD = 0010
+...T  = 08DC R 		...X  = 0000
+. ABS.	0721	  00
+      	0903	  01
+ERRORS DETECTED: 0
+FREE CORE: 12227. WORDS
+
+OBJ:ALSCOR,OBJ:ALSCOR.LST=ALSCOR
+
+(OBJ:ALSCOR.OBJ,OBJ:ALSCOR.LST=DK1:ALSCOR)
+
+A TOTAL OF 5,445 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.2     I/O TIME -  00:00:00.0
+
+                                                                                                                                                               

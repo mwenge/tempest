@@ -1,0 +1,380 @@
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25
+TABLE OF CONTENTS
+
+   1-  2 ******************************************
+   1-  3 *					*
+   1-  4 *MODULE:		ALHARD			*
+   1-  5 *PROGRAMMER:	DAVE THEURER		*
+   1-  6 *FUNCTION:	ALIENS IRQ HANDLER	*
+   1-  7 *					*
+   1-  8 ******************************************
+   1- 12 **************************************************
+   1- 13 *						*
+   1- 14 *MODULE:		ALCOMN				*
+   1- 15 *PROGRAMMER:	DAVE THEURER			*
+   1- 16 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 17 *		TO BE .INCLUDED IN:		*
+   1- 18 *		    ALGAME,ALDISP,ALHARD	*
+   1- 19 *						*
+   1- 20	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 21	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 22	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 23	STRICTLY PROHIBITED.
+   1- 24 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  16-  1 GLOBALS
+  17-  1 IRQ-ENTRY
+  18-  1 IRQ-PROCESSING
+  19-  1 SWITCHES
+  20-  1	OUTPUTS
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 1
+
+
+     1                                  .TITLE ALHARD - ALIENS IRQ HANDLER
+     2                                          .SBTTL ******************************************
+     3                                          .SBTTL *                                        *
+     4                                          .SBTTL *MODULE:         ALHARD                  *
+     5                                          .SBTTL *PROGRAMMER:     DAVE THEURER            *
+     6                                          .SBTTL *FUNCTION:       ALIENS IRQ HANDLER      *
+     7                                          .SBTTL *                                        *
+     8                                          .SBTTL ******************************************
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 16
+GLOBALS
+
+     1                                          .SBTTL GLOBALS
+     2                                          .GLOBL MAINLN,RESET
+     3                                          .GLOBL MODSND,MOOLAH,QCHKSA
+     4         002AG                    QCHKS0  ==02A
+     5         0069G                    QCHKS1  ==069
+     6         004DG                    QCHKS2  ==04D
+     7         0016G                    QCHKS3  ==016
+     8         00ABG                    QCHKS4  ==0AB
+     9         00B2G                    QCHKS5  ==0B2
+    10         001EG                    QCHKS6  ==01E
+    11         003EG                    QCHKS7  ==03E
+    12         00DBG                    QCHKS8  ==0DB
+    13         0000G                    QCHKS9  ==000
+    14         007CG                    QCHKSA  ==07C
+    15         00EEG                    QCHKSB  ==0EE
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 17
+IRQ-ENTRY
+
+     1                                          .SBTTL IRQ-ENTRY
+     2
+     3         0000'                            .CSECT
+     4   0000    7C                     CHKSMA::        .BYTE QCHKSA
+     5                                  ;FUNCTION:	VERIFY STACK POINTER, PC AND SOFTWARE WATCHDOG
+     6                                  ;		RESET IF NECESSARY
+     7                                  ;		SWITCH DISPLAY BUFFER POINTER AND BUILD BUFFER POINTERS WHEN TIME
+     8
+     9   0001                           IRQ:
+    10   0001    48                             PHA                     ;SAVE ACC,X,Y
+    11   0002    8A                             TXA
+    12   0003    48                             PHA
+    13   0004    98                             TYA
+    14   0005    48                             PHA
+    15   0006    D8                             CLD                     ;SET HEX
+    16   0007    BA                             TSX
+    17   0008    E0    D0                       CPX I,0D0
+    18   000A    90    00                       IFCS                    ;STACK TOO DEEP?
+    19   000C    A5    53                       LDA FRTIMR
+    20   000E    10    04                       BPL SOFTOK              ;OVERRUN TIME LIMIT (BR IF OK)
+    21   000B    04                             ENDIF                   ;FALL INTO RESET ROUTINE
+    22   0010    00                             BRK
+    23   0011    4C  0000G                      JMP RESET
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 18
+IRQ-PROCESSING
+
+     1                                          .SBTTL IRQ-PROCESSING
+     2
+     3   0014    8D  5000               SOFTOK: STA WTCHDG              ;KICK DOG
+     4
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 19
+SWITCHES
+
+     1                                          .SBTTL SWITCHES
+     2
+     3
+     4
+     5   0017    8D  60CB                       STA POTGO               ;READ POT
+     6   001A    AD  60C8                       LDA ALLPOT
+     7   001D    49    0F                       EOR I,0F
+     8   001F    A8                             TAY
+     9   0020    29    10                       AND I,COCKTA
+    10   0022    8D  0117                       STA COCTAL
+    11   0025    98                             TYA
+    12   0026    38                             SEC
+    13   0027    E5    52                       SBC OTB
+    14   0029    29    0F                       AND I,0F
+    15   002B    C9    08                       CMP I,8
+    16   002D    90    00                       IFCS
+    17   002F    09    F0                       ORA I,0F0
+    18   002E    02                             ENDIF
+    19   0031    18                             CLC
+    20   0032    65    50                       ADC TBHD
+    21   0034    85    50                       STA TBHD
+    22   0036    84    52                       STY OTB
+    23   0038    8D  60DB                       STA A,POTGO2            ;KICK POKEY
+    24   003B    AC  60D8                       LDY ALLPO2
+    25                                                                  ;READ POKEY SWITCHES
+    26   003E    AD  0C00                       LDA A,IN1
+    27   0041    85    08                       STA $COINA              ;READ COIN, SLAM, TEST SWITCHES
+    28                                                                  ;DEBOUNCE SWITCHES (1 BIT/SWITCH):
+    29                                                                  ;CONSIDERING EACH BIT INDIVIDUALLY,
+    30                                                                  ;  IF INPUT+DBSW+SWSTAT IS
+    31                                                                  ;    0 OR 1, NEW SWSTAT=0
+    32                                                                  ;    2 OR 3, NEW SWSTAT=1
+    33   0043    A5    4C                       LDA DBSW
+    34   0045    84    4C                       STY DBSW
+    35   0047    A8                             TAY
+    36   0048    25    4C                       AND DBSW                ;((INPUT AND DBSW) OR SWSTAT)
+    37   004A    05    4D                       ORA SWSTAT
+    38   004C    85    4D                       STA SWSTAT
+    39   004E    98                             TYA                     ;	    AND
+    40   004F    05    4C                       ORA DBSW                ;     (DBSW OR INPUT)
+    41   0051    25    4D                       AND SWSTAT
+    42   0053    85    4D                       STA SWSTAT              ;SAVE RESULT HERE (0=ON, 1=OFF)
+    43   0055    A8                             TAY
+    44   0056    45    4F                       EOR SWRELE              ;MUST RELEASE PROCESS
+    45   0058    25    4D                       AND SWSTAT
+    46   005A    05    4E                       ORA SWFINA              ;LATCH ON
+    47   005C    85    4E                       STA SWFINA
+    48   005E    84    4F                       STY SWRELE
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 20
+OUTPUTS
+
+     1                                          .SBTTL  OUTPUTS
+     2   0060    A5    B4                       LDA TOUT0
+     3   0062    A4    13                       LDY $CCTIM
+     4   0064    10    00                       IFMI                    ;COIN COUNTERS
+     5   0066    09    04                       ORA I,MLCCNT
+     6   0065    02                             ENDIF
+     7   0068    A4    14                       LDY $CCTIM+1
+     8   006A    10    00                       IFMI
+     9   006C    09    02                       ORA I,MMCCNT
+    10   006B    02                             ENDIF
+    11   006E    A4    15                       LDY $CCTIM+2
+    12   0070    10    00                       IFMI
+    13   0072    09    01                       ORA I,MRCCNT
+    14   0071    02                             ENDIF
+    15   0074    8D  4000                       STA OUT0
+    16                                                                  ;
+    17                                                                  ;DO START LIGHTS
+    18                                                                  ;
+    19   0077    A6    3E                       LDX NUMPLA              ;INDEX FOR LIGHTS ON BIT IF IN GAME
+    20   0079    E8                             INX
+    21   007A    A4    05                       LDY QSTATUS
+    22   007C    D0    00                       IFEQ                    ;ATTRACT MODE?
+    23   007E    A2    00                       LDX I,0                 ;YES. OFF
+    24   0080    A4    07                       LDY $INTCT
+    25   0082    C0    40                       CPY I,40
+    26   0084    90    00                       IFCS                    ;BLINK ON TIME?
+    27   0086    A6    06                       LDX $$CRDT              ;YES.
+    28   0088    E0    02                       CPX I,2
+    29   008A    90    00                       IFCS
+    30   008C    A2    03                       LDX I,3
+    31   008B    02                             ENDIF
+    32   0085    08                             ENDIF
+    33   007D    10                             ENDIF
+    34   008E    BD  00DA'                      LDA X,LITSON
+    35   0091    45    A1                       EOR TNKOUT
+    36   0093    29    03                       AND I,MLED1!MLED2
+    37   0095    45    A1                       EOR TNKOUT
+    38   0097    85    A1                       STA TNKOUT
+    39   0099    8D  60E0                       STA OUTANK
+    40   009C    20  0000G                      JSR MOOLAH              ;PROCESS COINS
+    41   009F    20  0000G                      JSR MODSND              ;PROCESS SOUNDS
+    42   00A2    E6    53                       INC FRTIMR              ;UPDATE FRAME TIMER
+    43   00A4    E6    07                       INC $INTCT              ;INTERRUPT COUNTER
+    44   00A6    D0    00                       IFEQ                    ;ANOTHER SECOND?
+    45   00A8    EE  0406                       INC SECOUL              ;YES. UPDATE UP TIMER
+    46   00AB    D0    00                       IFEQ
+    47   00AD    EE  0407                       INC SECOUM
+    48   00B0    D0    00                       IFEQ
+    49   00B2    EE  0408                       INC SECOUH
+    50   00B1    03                             ENDIF
+    51   00AC    08                             ENDIF
+    52   00B5    24    05                       BIT QSTATUS
+    53   00B7    50    00                       IFVS                    ;GAME TIMER MODE?
+    54   00B9    EE  0409                       INC SECOPL              ;YES. UPDATE PLAY TIMER
+    55   00BC    D0    00                       IFEQ
+    56   00BE    EE  040A                       INC SECOPM
+    57   00C1    D0    00                       IFEQ
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 20+
+OUTPUTS
+
+    58   00C3    EE  040B                       INC SECOPH
+    59   00C2    03                             ENDIF
+    60   00BD    08                             ENDIF
+    61   00B8    0D                             ENDIF
+    62   00A7    1E                             ENDIF
+    63   00C6    2C  0C00                       BIT IN1
+    64   00C9    50    00                       IFVS                    ;VG DONE (HALTED)?
+    65   00CB    EE  0133                       INC SPARE3                      ;SET STOPPED FLAG
+    66   00CE    8D  5800                       STA VGSTOP
+    67   00D1    8D  4800                       STA VGSTART
+    68   00CA    09                             ENDIF
+    69   00D4    68                             PLA                     ;RESTORE Y,X,ACC
+    70   00D5    A8                             TAY
+    71   00D6    68                             PLA
+    72   00D7    AA                             TAX
+    73   00D8    68                             PLA
+    74   00D9    40                             RTI
+    75
+    76   00DA    FF    FD    FE    FC   LITSON: .BYTE 0FF,^CMLED1,^CMLED2,^C<MLED1!MLED2>
+    77   DFFA  0001' 0000G 0001'                .VCTRS 0DFFA,IRQ,RESET,IRQ
+    78                                          HLL65
+    79         0001'                            .END
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 20+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		AUDCTL= 60C8   		AUDC1 = 60C1
+AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8   		BFACTR  0078
+BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007   		BOFLAS  0124
+BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D   		BOOMTI  010E
+BUFACT  0415   		BUFRDY  0054   		CAMPC   010B   		CAMSTA  010C   		CBOOM = 0024
+CBUF1 = 0078   		CDBOOM= 0004   		CDBOXP= 0012   		CDGETI= 0006   		CDGOVR= 000C
+CDHITB= 000A   		CDLADR= 0014   		CDLOGP= 0014   		CDPLAY= 0000   		CDPLPL= 000E
+CDPRST= 0010   		CDREQR= 0008   		CDROP = 0020   		CDSYST= 0002   		CD2GAM= 0016
+CENDGA= 0008   		CENDLI= 0006   		CENDWA= 000E   		CGETIN= 0012   		CHACHA  00A7
+CHACOU  0135   		CHAINV  00A8   		CHARCO  02F2   		CHARL1  02AD   		CHARL2  02C0
+CHARY   02D3   		CHARYL  02E6   		CHISCH= 0010   		CHKSMA  0000 RG		CINIRA= 001C
+CLOGO = 001A   		CNEWAV= 000C   		CNEWGA= 0000   		CNEWLI= 0002   		CNEWV2= 0018
+CNOTFO= 0014   		CNWLF2= 001E   		COCKTA= 0010   		COCTAL  0117   		COLOR   009E
+COLPOR= 0800   		COLRAM  0019   		CPAUSE= 000A   		CPLAY = 0004   		CREQRA= 0016
+CSYSTM= 0022   		CURCOL= 0001   		CURMOD  0106   		CURNTX  006A   		CURNTY  006C
+CURSL1  0200   		CURSL2  0201   		CURSPO  0051   		CURSVH  0105   		CURSVL  0104
+CURSY   0202   		CURSYL  0107   		CURWAV  009F   		DBSW    004C   		DEPCOL= 0006
+EACTL = 6040   		EADAL = 6000   		EAIN  = 6050   		ELICNT  0123   		EMCTRS= 0003
+ENSIZE  0151   		ESHCOU  00A6   		EXICAM  010A   		EXL     005E   		EXPCOL= 0000
+EXPCOU  0116   		EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302   		EXPLOY  030A
+EYEFAC  0065   		EYH     005B   		EYL     005F   		EYLDES  005D   		EYLL    005C
+EZL     0060   		FARY    014E   		FBLUE = 000B   		FGREEN= 0007   		FLASH = 000F
+FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142   		FRED  = 000C   		FRTIMR  0053
+FUSECO  0146   		GAMOP1  071E   		GAMOP3  071F   		GREEN = 0005   		HARDWA= 6000
+HIRATE  0127   		HIWAVE  0126   		HRANKH= 0620   		HRANKL  061E   		HRANKM= 061F
+HRED  = 000D   		HSCORH= 0708   		HSCORL= 0706   		HSCORM= 0707   		ICHCOL= 0000
+ILINDD= 00F0   		ILINLI= 0010   		INCCOU  0109   		INDEX1  0037   		INDEX2  0038
+INDEX3  0039   		INDEX4  003A   		INDYHI  003C   		INDYLO  003B   		ININDX  0604
+INITAL  0606   		INMCOU  0108   		INOP0 = 0D00   		INOP1 = 0E00   		INPUT   004A
+INTACK= 5000   		INTENS  0098   		INTIME  0128   		INVABI= 0007   		INVACT  02A6
+INVAC1  0283   		INVAC2  028A   		INVAL1  02B9   		INVAL2  02CC   		INVAY   02DF
+INVAYL  029F   		INVCAM  0291   		INVCAR= 0003   		INVCOL= 0003   		INVDIR= 0080
+INVFIR= 0040   		INVLOO  0298   		INVMOT= 0080   		INVROT= 0040   		INVSEQ= 0018
+IN1   = 0C00   		IRQ     0001 R 		LEDOFF= 0003   		LEFSID  007B   		LETCOL= 0005
+LEVELY  010F   		LIFSXH  035A   		LIFSXL  036A   		LIFSZH  037A   		LIFSZL  038A
+LINANG  03EE   		LINEX   03CE   		LINEXM  0435   		LINEY   03AC   		LINEZ   03DE
+LINEZM  0445   		LINSCA  0059   		LINSTA  039A   		LINSXH  031A   		LINSXL  032A
+LINSZH  033A   		LINSZL  034A   		LITRAL  00AC   		LITSON  00DA R 		LIVES1  0048
+LIVES2  0049   		LSCORH  0042   		LSCORL  0040   		LSCORM  0041   		LVSGAM  0158
+MAH   = 6081   		MAINLN= ****  G		MAL   = 6080   		MATRAC= 0080   		MBH   = 6083
+MBL   = 6082   		MBSTAR= 6080   		MCOINC= 0002   		MCOINL= 0004   		MCOINR= 0001
+MDITES= 0020   		MDYPL = 6098   		MECHS = 0003   		MEH   = 6085   		MEL   = 6084
+MFAKE = 0080   		MFH   = 6087   		MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004
+MGTMOD= 0040   		MHALT = 0040   		MLCCNT= 0004   		MLED1 = 0002   		MLED2 = 0001
+MMCCNT= 0002   		MNL   = 608C   		MODSND= ****  G		MOOLAH= ****  G		MOPTI4= 0020
+MOPT13= 0007   		MRCCNT= 0001   		MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040
+MSUZA = 0008   		MSZXD = 6094   		MTEMP   0031   		MTEST = 0010   		MVINVX= 0008
+MVINVY= 0010   		MXH   = 6089   		MXL   = 6088   		MXPH  = 6096   		MXPL  = 6095
+MYHIGH= 6070   		MYLOW = 6060   		MZHH  = 6090   		MZHL  = 608F   		MZLH  = 608E
+MZLL  = 608D   		M3KHTI= 0080   		NCHARG= 000C   		NEARY   014D   		NEOFLI  014F
+NEWAIT  00A3   		NEWPLA  003F   		NEXPLO= 0008   		NGAMES  0100   		NGAME0  040E
+NGAMIH  040D   		NGAMIL  040C   		NGAM2H  0410   		NGAM2L  040F   		NGAM20  0411
+NGAVGH  0413   		NGAVGL  0412   		NGAVGZ  0414   		NHISCO= 0008   		NICHAR= 0004
+NINVAD= 0007   		NLINES= 0010   		NNYMPH= 0040   		NPARTI= 0010   		NPCHAR= 0008
+NPLANE= 0008   		NPLAYR  0101   		NRANKS= 0063   		NROMS = 000C   		NUMPLA  003E
+NWNYMC  015B   		NWTELI  015A   		NYMCOL= 000C   		NYMCOU  03AB   		NYMPL   0203
+NYMPY   0243   		OBJIND  0055   		OCURSL  00A5   		OFRTIM  00A4   		OLDLHI  00AB
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 20+
+SYMBOL TABLE
+
+OLDLLO  00AA   		OLOFLI  0150   		OM2GAM= 0001   		OPFLIP  013D   		OPFUSE  0141
+OPPULS  013E   		OPSPIN  0140   		OPTANK  013F   		OPTIN1  0009   		OPTIN2  000A
+OPTIN3  016A   		OTB     0052   		OUTANK= 60E0   		OUT0  = 4000   		PARLIX  0203
+PARLIY  0223   		PARLIZ  0243   		PARLXA= 0020   		PARLXV  02C3   		PARLYA= 0020
+PARLYV  02E3   		PARLZA= 0020   		PARLZV  0303   		PARTIX  0263   		PARTIY  0283
+PARTIZ  02A3   		PARTXA= 0000   		PARTXV  0323   		PARTYA= 0000   		PARTYV  0343
+PARTZA= 0000   		PARTZV  0363   		PCHCOL= 0001   		PCVELO= 0009   		PDIRED= 000B
+PDIWHI= 0009   		PDIYEL= 000A   		PLAGRO  0115   		PLANEY  03FE   		PLAYUP  003D
+POKEY = 60C0   		POKEY2= 60D0   		POTGO = 60CB   		POTGO2= 60DB   		PROG  = 9000
+PSCALE  016B   		PSHCTR= 0008   		PUCHDE  00B2   		PULPOT  0157   		PULSCO  0143
+PULSON  0148   		PULTIM  0147   		PULVEL= FEA0   		PURPLE= 0002   		PXL     0056
+PYL     0057   		PZL     0058   		QCHKSA= 007C  G		QCHKSB= 00EE  G		QCHKS0= 002A  G
+QCHKS1= 0069  G		QCHKS2= 004D  G		QCHKS3= 0016  G		QCHKS4= 00AB  G		QCHKS5= 00B2  G
+QCHKS6= 001E  G		QCHKS7= 003E  G		QCHKS8= 00DB  G		QCHKS9= 0000  G		QDSTAT  0001
+QFRAME  0003   		QNXTST  0002   		QSTATE  0000   		QSTATU  0005   		QTMPAU  0004
+QT1     00B5   		QT2     016C   		QT3     0455   		QT4     0720   		QT5     011F
+QT6     011B   		QUASEC= 0005   		RANDOM= 60CA   		RANDO2= 60DA   		RANKS   0600
+RED   = 0003   		RESET = ****  G		RITSID  007C   		ROMSTA= 3000   		ROTDIS  0114
+ROTFLG  0113   		RSCORH  0045   		RSCORL  0043   		RSCORM  0044   		RUNGVG  00B0
+SAVEND  03CE   		SAVEP   03BC   		SAVEX   0035   		SAVEY   0036   		SCFL    0079
+SECOND= 0014   		SECOPH  040B   		SECOPL  0409   		SECOPM  040A   		SECOUH  0408
+SECOUL  0406   		SECOUM  0407   		SECUVG  00B6   		SECUVY  016E   		SKCTL = 60CF
+SKCTL2= 60DF   		SOFTOK  0014 R 		SPACG = 0000   		SPARE3  0133   		SPBINA  013A
+SPFTIM  013C   		SPINCO  0145   		SPLINE  0139   		SPOKST  0425   		SPXIND  013B
+SUBCOU  0099   		SUZCNT  03AA   		SUZTIM  0125   		SVGLIS  0076   		SWFINA  004E
+SWRELE  004F   		SWSTAT  004D   		SWSTRT  004D   		SXH     0062   		SXL     0061
+SYM   = 6092   		SZH     0064   		SZL     0063   		S1    = 00C9 R 		S2    = 00B7 R
+S3    = 00BC R 		S4    = 00C1 R 		TANCOL= 0002   		TANKCO  0144   		TBHD    0050
+TBLIND  0602   		TCMFLG  00A2   		TEMPL   002A   		TEMPX   002E   		TEMPY   002F
+TEMPZ   0030   		TEMP0   0029   		TEMP1   002A   		TEMP2   002B   		TEMP3   002C
+TEMP4   002D   		TIMHIS  0605   		TNKOUT  00A1   		TOUT0   00B4   		TRACOL= 0005
+TSLAMR  000B   		TURQOI= 0004   		TYPCOD  015E   		UNITXH  009B   		UNITXL  009A
+UNITZH  009D   		UNITZL  009C   		VECRAM= 2000   		VGBRIT  0073   		VGLIST  0074
+VGSIZE  0072   		VGSTAR= 4800   		VGSTOP= 5800   		VGY     00A9   		WAVEN1  0046
+WAVEN2  0047   		WCHAMX  011A   		WCHARF  0119   		WCHARI  0118   		WCHARL  0120
+WELCOL= 0006   		WELLID  0112   		WELTYP  0111   		WFLICA  015D   		WFLMAX  012E
+WFLMIN  0129   		WFUFRQ  015F   		WFUMAX  0132   		WFUMIN  012D   		WFUSCH  0159
+WFUSIH= 0169   		WFUSIL= 0164   		WHITE = 0000   		WINVIL  0160   		WINVIN  0165
+WINVJM  011D   		WINVMX  011C   		WNYMMX  011E   		WPULCA  015C   		WPULFI  016D
+WPUMAX  012F   		WPUMIN  012A   		WSPMAX  0131   		WSPMIN  012C   		WTACAR  0149
+WTAMAX  0130   		WTAMIN  012B   		WTCHDG= 5000   		WTFMAX  0136   		WTTFRA  00B3
+XADJL   0066   		XCOMP   006E   		X0H     0080   		X0L     0078   		X1H     0081
+X1L     0079   		X2H     0082   		X2L     007A   		X3H     0083   		X3L     007B
+X4H     0084   		X4L     007C   		X5H     0085   		X5L     007D   		X6H     0086
+X6L     007E   		X7H     0087   		X7L     007F   		YCOMP = 0070   		YDEUNI  00A0
+YELLOW= 0001   		ZABFLI= 0000   		ZABFUS= 0004   		ZABPUL= 0001   		ZABTAN= 0002
+ZABTRA= 0003   		ZADEST  0121   		ZADJL   0068   		ZAPCOL= 0000   		ZBLACK= 000F
+ZBLUE = 000B   		ZCARFL= 0001   		ZCARFU= 0003   		ZCARNO= 0000   		ZCARPU= 0002
+ZDIRDO= 0080   		ZDIRUP= 0000   		ZFIRNO= 0000   		ZFIRYE= 0040   		ZGREEN= 0007
+ZMOTJM= 0080   		ZMOTMO= 0000   		ZPNLOC  00AE   		ZPOFFS  00AF   		ZPURPL= 0008
+ZRED  = 000C   		ZROCCW= 0040   		ZROTCW= 0000   		ZTURQO= 0003   		ZWHITE= 0000
+ZYELLO= 0004   		Z0H     0090   		Z0L     0088   		Z1H     0091   		Z1L     0089
+Z2H     0092   		Z2L     008A   		Z3H     0093   		Z3L     008B   		Z4H     0094
+Z4L     008C   		Z5H     0095   		Z5L     008D   		Z6H     0096   		Z6L     008E
+Z7H     0097   		Z7L     008F   		$BC     0018   		$BCCNT  0016   		$CCTIM  0013
+$CMODE  0009   		$CNCT   0017   		$CNSTT  000D   		$COINA  0008   		$INTCT  0007
+$LAM    0008   		$LMBIT= 0008   		$LMTIM  000C   		$PSTSL  0010   		$TEST   0008
+ALHARD - ALIENS IRQ HANDLER	ATARI MAC65 VM03.09  00:00:25 PAGE 20+
+SYMBOL TABLE
+
+$$CRDT  0006   		...RD = 0010   		...T  = 00D4 R 		...X  = 0000
+. ABS.	0721	  00
+      	00DE	  01
+ERRORS DETECTED: 0
+FREE CORE: 12930. WORDS
+
+OBJ:ALHARD,OBJ:ALHARD.LST=ALHARD
+
+(OBJ:ALHARD.OBJ,OBJ:ALHARD.LST=DK1:ALHARD)
+
+A TOTAL OF 1,811 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.0     I/O TIME -  00:00:00.0
+
+                                                                                                                                                                                                                                                                                                                                                                                                                     

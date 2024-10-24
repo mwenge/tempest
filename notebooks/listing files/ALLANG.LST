@@ -1,0 +1,980 @@
+ALLANG	ATARI MAC65 VM03.09  00:00:24
+TABLE OF CONTENTS
+
+   1-  2	************************************************
+   1-  3	* MODULE:  ALLANG
+   1-  4	* PROGRAMMER:  DAVE THEURER
+   1-  5	* FUNCTION:  MESSAGES FOR ALIENS
+   1-  6	************************************************
+   1-  9 **************************************************
+   1- 10 *						*
+   1- 11 *MODULE:		ALCOMN				*
+   1- 12 *PROGRAMMER:	DAVE THEURER			*
+   1- 13 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 14 *		TO BE .INCLUDED IN:		*
+   1- 15 *		    ALGAME,ALDISP,ALHARD	*
+   1- 16 *						*
+   1- 17	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 18	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 19	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 20	STRICTLY PROHIBITED.
+   1- 21 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  16-  1	MESSAGE MACROS
+  16-  3	.ASCVG - VG MODIFIED 'ASCII'
+  17-  1	PREPARE TO MAKE MSG TABLES
+  17- 36	MESSAGES: COLOR, SCALE, Y POSITION, LANGUAGE PTRS
+  18-  1	LITERALS
+  18-163	INITIALIZE LANGUAGE POINTER
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 1
+
+
+     1                                  .TITLE  ALLANG
+     2                                          .SBTTL  ************************************************
+     3                                          .SBTTL  * MODULE:  ALLANG
+     4                                          .SBTTL  * PROGRAMMER:  DAVE THEURER
+     5                                          .SBTTL  * FUNCTION:  MESSAGES FOR ALIENS
+     6                                          .SBTTL  ************************************************
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 15
+VARIABLES - PAGE 1
+
+     2         0000'                            .CSECT
+     3                                          .GLOBL  MSGLBS,INILIT,ENGMSG,GETOP3
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 16
+MESSAGE MACROS
+
+     1                                          .SBTTL  MESSAGE MACROS
+     2+                                         .INCLUDE ASCVG
+     3+                                 .SBTTL  .ASCVG - VG MODIFIED 'ASCII'
+     4+
+     5+                                 ;	PROGRAMMER: RICH MOORE
+     6+
+     7+                                 ;
+     8+                                 ;MACRO .ASCVG CONVERTS STRING OF ALPHANUMERICS TO OFFSET VALUES INTO
+     9+                                 ;VGMSGA TABLE (TABLE OF VG CHARACTER JSRL'S)
+    10+                                 ;
+    11+                                         .MACRO .ASCVG .STRING
+    12+                                         .NCHR ..N,<.STRING>
+    13+                                         .IRPC ..C,<.STRING>
+    14+                                         .IF EQ,''..C-^H20
+    15+                                         ..X=0                   ;BLANK CHAR=0
+    16+                                         .IFF
+    17+                                         .IF GT,''..C-^H40
+    18+                                         ..X=''..C-^H36          ;ALPHA'S ^B TO ^25
+    19+                                         .IFF
+    20+                                         ..X=''..C-^H2F          ;NUMBERS 1 TO ^A
+    21+                                         .ENDC
+    22+                                         .ENDC
+    23+                                         ..X=..X*2               ;..X=VGMSGA TABLE OFFSET
+    24+                                         ..N=..N-1
+    25+                                         .IIF EQ,..N,..X=..X!^H80        ;SET LAST CHAR OF MSG FLAG
+    26+                                         .BYTE ..X
+    27+                                         .ENDR
+    28+                                         .ENDM
+    29+                                         .LIST   MEB
+    30+                                         .NLIST  BYT
+    31                                          .MACRO ASCVH ...AR1,...AR2
+    32                                          .NARG ...NUM
+    33                                          .IF EQ ...NUM-1
+    34                                          .NCHR ...HLO,<...AR1>   ;1 ARGUMENT, CENTER STRING
+    35                                          .BYTE -<...HLO*3>
+    36                                          .ASCVG <...AR1>
+    37                                          .IFF
+    38                                          .BYTE ...AR1            ;2 ARGUMENTS: HORIZ LOC.
+    39                                          .ASCVG <...AR2>         ;STRING
+    40                                          .ENDC
+    41                                          .ENDM
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 17
+PREPARE TO MAKE MSG TABLES
+
+     1                                          .SBTTL  PREPARE TO MAKE MSG TABLES
+     2                                          .MACRO MESS ...LIT,...COL,...SCA,...YPO
+     3                                          .=...ENG
+     4                                          .WORD E'...LIT
+     5                                          ...ENG=...ENG+2
+     6                                          .=...FRE
+     7                                          .WORD F'...LIT
+     8                                          ...FRE=...FRE+2
+     9                                          .=...GER
+    10                                          .WORD G'...LIT
+    11                                          ...GER=...GER+2
+    12                                          .=...SPA
+    13                                          .WORD S'...LIT
+    14                                          ...SPA=...SPA+2
+    15                                  M'...LIT=.MSNUM
+    16                                          .GLOBL M'...LIT
+    17                                          .MSNUM=.MSNUM+2
+    18                                          .=...CSY
+    19                                          .BYTE <...COL*10>!...SCA        ;COLOR, SCALE
+    20                                          .BYTE ...YPO
+    21                                          ...CSY=...CSY+2
+    22                                          .ENDM
+    23         001E                     NMSGS   =30.                    ;30 MESSAGES
+    24         0000'                    ...ENG  =.                      ;ENGLISH TABLE TOP
+    25         003C'                    ...FRE  =...ENG+<NMSGS*2>       ;FRENCH TABLE TOP
+    26         0078'                    ...GER  =...FRE+<NMSGS*2>       ;GERMAN TABLE TOP
+    27         00B4'                    ...SPA  =...GER+<NMSGS*2>       ;SPANISH TABLE TOP
+    28         00F0'                    ...CSY  =...SPA+<NMSGS*2>       ;COLOR, SCALE, Y TABLE TOP
+    29         0000                     .MSNUM  =0
+    30         00F0'                    MSGLBS  =...CSY
+    31         0000'                    ENGMSG  =...ENG
+    32         003C'                    FREMSG  =...FRE
+    33         0078'                    GERMSG  =...GER
+    34         00B4'                    SPAMSG  =...SPA
+    35
+    36                                          .SBTTL  MESSAGES: COLOR, SCALE, Y POSITION, LANGUAGE PTRS
+    37
+    38   0000  012C'                    MESS    GAMOV,GREEN,1,56                ;GAME OVER
+         003C  0136'
+         0078  0144'
+         00B4  014E'
+         00F0    51    56
+    39   0002  015E'                    MESS    PLAYR,WHITE,0,1A        ;PLAYER (BIG)
+         003E  0166'
+         007A  016E'
+         00B6  0177'
+         00F2    00    1A
+    40   0004  015E'                    MESS    PLYR2,WHITE,1,20        ;PLAYER (NORMAL)
+         0040  0166'
+         007C  016E'
+         00B8  0177'
+         00F4    01    20
+    41   0006  0180'                    MESS    PRESS,RED,1,56          ;PRESS START
+         0042  018C'
+         007E  019E'
+         00BA  01AD'
+         00F6    31    56
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 17+
+MESSAGES: COLOR, SCALE, Y POSITION, LANGUAGE PTRS
+
+    42   0008  01BA'                    MESS    PLAY,WHITE,1,38         ;PLAY
+         0044  01BF'
+         0080  01C5'
+         00BC  01CB'
+         00F8    01    38
+    43   000A  01D2'                    MESS    ENTER,RED,1,0B0         ;ENTER
+         0046  01E6'
+         0082  01FF'
+         00BE  021C'
+         00FA    31    B0
+    44   000C  0230'                    MESS    PRMOV,TURQOI,1,0        ;SPIN
+         0048  0244'
+         0084  0263'
+         00C0  027D'
+         00FC    41    00
+    45   000E  029A'                    MESS    PRFIR,YELLOW,1,-10.     ;PRESS FIRE
+         004A  02AF'
+         0086  02CA'
+         00C2  02E5'
+         00FE    11    F6
+    46   0010  0302'                    MESS    HIGHS,RED,0,38          ;HIGH SCORE
+         004C  030E'
+         0088  031F'
+         00C4  032D'
+         0100    30    38
+    47   0012  0335'                    MESS    RANK,RED,1,-50.         ;RANK
+         004E  0348'
+         008A  035A'
+         00C6  036F'
+         0102    31    CE
+    48   0014  037F'                    MESS    RATE,GREEN,1,10.        ;RATE YOURSELF
+         0050  038D'
+         008C  039A'
+         00C8  03A9'
+         0104    51    0A
+    49   0016  03B5'                    MESS    NOVIC,RED,1,-30.        ;NOVICE
+         0052  03B5'
+         008E  03C4'
+         00CA  03BC'
+         0106    31    E2
+    50   0018  03CE'                    MESS    EXPER,RED,1,-30.        ;EXPERT
+         0054  03CE'
+         0090  03DD'
+         00CC  03D5'
+         0108    31    E2
+    51   001A  03E6'                    MESS    BONUS,GREEN,1,-70.      ;BONUS
+         0056  03E6'
+         0092  03E6'
+         00CE  03E6'
+         010A    51    BA
+    52   001C  03EC'                    MESS    TIME,GREEN,1,98         ;TIME
+         0058  03F1'
+         0094  03F7'
+         00D0  03FC'
+         010C    51    98
+    53   001E  0403'                    MESS    LEVEL,GREEN,1,-40.      ;LEVEL
+         005A  0409'
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 17+
+MESSAGES: COLOR, SCALE, Y POSITION, LANGUAGE PTRS
+
+         0096  0410'
+         00D2  0415'
+         010E    51    D8
+    54   0020  041B'                    MESS    HOLE,GREEN,1,-55.       ;HOLE
+         005C  0420'
+         0098  042A'
+         00D4  0425'
+         0110    51    C9
+    55   0022  042F'                    MESS    INSER,RED,1,56          ;INSERT COINS
+         005E  043C'
+         009A  0452'
+         00D6  0461'
+         0112    31    56
+    56   0024  0470'                    MESS    CMODE,GREEN,1,80        ;FREE PLAY
+         0060  0470'
+         009C  0470'
+         00D8  0470'
+         0114    51    80
+    57   0026  047A'                    MESS    CMOD1,GREEN,1,80        ;1 COIN 2 PLAYS
+         0062  0489'
+         009E  049B'
+         00DA  04AC'
+         0116    51    80
+    58   0028  04BE'                    MESS    CMOD2,GREEN,1,80        ;1 COIN 1 PLAY
+         0064  04CC'
+         00A0  04DD'
+         00DC  04EE'
+         0118    51    80
+    59   002A  04FF'                    MESS    CMOD3,GREEN,1,80        ;2 COINS 1 PLAY
+         0066  050E'
+         00A2  0520'
+         00DE  0532'
+         011A    51    80
+    60   002C  0544'                    MESS    ATARI,BLULET,1,92               ;MCMLXXX ATARI
+         0068  0544'
+         00A4  0544'
+         00E0  0544'
+         011C    71    92
+    61   002E  0554'                    MESS    CREDI,GREEN,1,80        ;CREDITS
+         006A  0554'
+         00A6  055D'
+         00E2  0566'
+         011E    51    80
+    62   0030  0570'                    MESS    BONPT,RED,1,0B0         ;BONUS PTS
+         006C  0570'
+         00A8  0570'
+         00E4  0570'
+         0120    31    B0
+    63   0032  0577'                    MESS    2GAME,GREEN,1,89        ;2 GAME MINIMUM
+         006E  0588'
+         00AA  0597'
+         00E6  05A8'
+         0122    51    89
+    64   0034  05B8'                    MESS    BOLIF,TURQOI,1,89       ;BONUS EVERY
+         0070  05C5'
+         00AC  05D3'
+         00E8  05DF'
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 17+
+MESSAGES: COLOR, SCALE, Y POSITION, LANGUAGE PTRS
+
+         0124    41    89
+    65   0036  05EB'                    MESS    SPIKE,WHITE,0,0         ;AVOID SPIKES
+         0072  05F8'
+         00AE  060D'
+         00EA  0620'
+         0126    00    00
+    66   0038  0631'                    MESS    APROA,BLULET,1,5A               ;APPROACH
+         0074  0637'
+         00B0  063E'
+         00EC  0643'
+         0128    71    5A
+    67   003A  0649'                    MESS    SUPZA,BLULET,1,0A0      ;NEW SUPER
+         0076  0649'
+         00B2  065E'
+         00EE  0670'
+         012A    71    A0
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18
+LITERALS
+
+     1                                          .SBTTL  LITERALS
+     2                                  ;
+     3   012C    E5    22    16    2E   EGAMOV: ASCVH <GAME OVER>
+         0130    1E    00    32    40
+         0134    1E    B8
+     4   0136    D9    20    26    30   FGAMOV: ASCVH <FIN DE PARTIE>
+         013A    00    1C    1E    00
+         013E    34    16    38    3C
+         0142    26    9E
+     5   0144    E5    3A    34    26   GGAMOV: ASCVH <SPIELENDE>
+         0148    1E    2C    1E    30
+         014C    1C    9E
+     6   014E    D3    28    3E    1E   SGAMOV: ASCVH <JUEGO TERMINADO>
+         0152    22    32    00    3C
+         0156    1E    38    2E    26
+         015A    30    16    1C    B2
+     7                                  ;
+     8   015E                           EPLYR2:
+     9   015E    CD    34    2C    16   EPLAYR: ASCVH 0CD,<PLAYER >
+         0162    46    1E    38    80
+    10   0166                           FPLYR2:
+    11   0166    C6    28    32    3E   FPLAYR: ASCVH 0C6,<JOUEUR >
+         016A    1E    3E    38    80
+    12   016E                           GPLYR2:
+    13   016E    C6    3A    34    26   GPLAYR: ASCVH 0C6,<SPIELER >
+         0172    1E    2C    1E    38
+         0176    80
+    14   0177                           SPLYR2:
+    15   0177    C6    28    3E    22   SPLAYR: ASCVH 0C6,<JUGADOR >
+         017B    16    1C    32    38
+         017F    80
+    16                                  ;
+    17   0180    DF    34    38    1E   EPRESS: ASCVH <PRESS START>
+         0184    3A    3A    00    3A
+         0188    3C    16    38    BC
+    18   018C    CD    16    34    34   FPRESS: ASCVH <APPUYEZ SUR START>
+         0190    3E    46    1E    48
+         0194    00    3A    3E    38
+         0198    00    3A    3C    16
+         019C    38    BC
+    19   019E    D6    3A    3C    16   GPRESS: ASCVH <START DRUECKEN>
+         01A2    38    3C    00    1C
+         01A6    38    3E    1E    1A
+         01AA    2A    1E    B0
+    20   01AD    DC    34    3E    2C   SPRESS: ASCVH <PULSAR START>
+         01B1    3A    16    38    00
+         01B5    3A    3C    16    38
+         01B9    BC
+    21                                  ;
+    22   01BA    F4    34    2C    16   EPLAY:  ASCVH <PLAY>
+         01BE    C6
+    23   01BF    F1    28    32    3E   FPLAY:  ASCVH <JOUEZ>
+         01C3    1E    C8
+    24   01C5    F1    3A    34    26   GPLAY:  ASCVH <SPIEL>
+         01C9    1E    AC
+    25   01CB    EE    28    3E    1E   SPLAY:  ASCVH <JUEGUE>
+         01CF    22    3E    9E
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+    26                                  ;
+    27   01D2    C7    1E    30    3C   EENTER: ASCVH <ENTER YOUR INITIALS>
+         01D6    1E    38    00    46
+         01DA    32    3E    38    00
+         01DE    26    30    26    3C
+         01E2    26    16    2C    BA
+    28   01E6    B8    3A    40    34   FENTER: ASCVH <SVP ENTREZ VOS INITIALES>
+         01EA    00    1E    30    3C
+         01EE    38    1E    48    00
+         01F2    40    32    3A    00
+         01F6    26    30    26    3C
+         01FA    26    16    2C    1E
+         01FE    BA
+    29   01FF    AC    22    1E    18   GENTER: ASCVH <GEBEN SIE IHRE INITIALEN EIN>
+         0203    1E    30    00    3A
+         0207    26    1E    00    26
+         020B    24    38    1E    00
+         020F    26    30    26    3C
+         0213    26    16    2C    1E
+         0217    30    00    1E    26
+         021B    B0
+    30   021C    C7    1E    30    3C   SENTER: ASCVH <ENTRE SUS INICIALES>
+         0220    38    1E    00    3A
+         0224    3E    3A    00    26
+         0228    30    26    1A    26
+         022C    16    2C    1E    BA
+    31                                  ;
+    32   0230    C7    3A    34    26   EPRMOV: ASCVH <SPIN KNOB TO CHANGE>
+         0234    30    00    2A    30
+         0238    32    18    00    3C
+         023C    32    00    1A    24
+         0240    16    30    22    9E
+    33   0244    A6    3C    32    3E   FPRMOV: ASCVH <TOURNEZ LE BOUTON POUR CHANGER>
+         0248    38    30    1E    48
+         024C    00    2C    1E    00
+         0250    18    32    3E    3C
+         0254    32    30    00    34
+         0258    32    3E    38    00
+         025C    1A    24    16    30
+         0260    22    1E    B8
+    34   0263    B5    2A    30    32   GPRMOV: ASCVH <KNOPF DREHEN ZUM WECHSELN>
+         0267    34    20    00    1C
+         026B    38    1E    24    1E
+         026F    30    00    48    3E
+         0273    2E    00    42    1E
+         0277    1A    24    3A    1E
+         027B    2C    B0
+    35   027D    AC    22    26    38   SPRMOV: ASCVH <GIRE LA PERILLA PARA CAMBIAR>
+         0281    1E    00    2C    16
+         0285    00    34    1E    38
+         0289    26    2C    2C    16
+         028D    00    34    16    38
+         0291    16    00    1A    16
+         0295    2E    18    26    16
+         0299    B8
+    36                                  ;
+    37   029A    C4    34    38    1E   EPRFIR: ASCVH <PRESS FIRE TO SELECT>
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+         029E    3A    3A    00    20
+         02A2    26    38    1E    00
+         02A6    3C    32    00    3A
+         02AA    1E    2C    1E    1A
+         02AE    BC
+    38   02AF    B2    34    32    3E   FPRFIR: ASCVH <POUSSEZ FEU QUAND CORRECTE>
+         02B3    3A    3A    1E    48
+         02B7    00    20    1E    3E
+         02BB    00    36    3E    16
+         02BF    30    1C    00    1A
+         02C3    32    38    38    1E
+         02C7    1A    3C    9E
+    39   02CA    B2    20    26    38   GPRFIR: ASCVH <FIRE DRUECKEN WENN RICHTIG>
+         02CE    1E    00    1C    38
+         02D2    3E    1E    1A    2A
+         02D6    1E    30    00    42
+         02DA    1E    30    30    00
+         02DE    38    26    1A    24
+         02E2    3C    26    A2
+    40   02E5    AC    32    34    38   SPRFIR: ASCVH <OPRIMA FIRE PARA SELECCIONAR>
+         02E9    26    2E    16    00
+         02ED    20    26    38    1E
+         02F1    00    34    16    38
+         02F5    16    00    3A    1E
+         02F9    2C    1E    1A    1A
+         02FD    26    32    30    16
+         0301    B8
+    41                                  ;
+    42   0302    BC    24    26    22   EHIGHS: ASCVH 0BC,<HIGH SCORES>
+         0306    24    00    3A    1A
+         030A    32    38    1E    BA
+    43   030E    9E    2E    1E    26   FHIGHS: ASCVH 9E,<MEILLEURS SCORES>
+         0312    2C    2C    1E    3E
+         0316    38    3A    00    3A
+         031A    1A    32    38    1E
+         031E    BA
+    44   031F    B0    24    32    1E   GHIGHS: ASCVH 0B0,<HOECHSTZAHLEN>
+         0323    1A    24    3A    3C
+         0327    48    16    24    2C
+         032B    1E    B0
+    45   032D    D4    38    1E    1A   SHIGHS: ASCVH 0D4,<RECORDS>
+         0331    32    38    1C    BA
+    46                                  ;
+    47   0335    C2    38    16    30   ERANK:  ASCVH 0C2,<RANKING FROM 1 TO >
+         0339    2A    26    30    22
+         033D    00    20    38    32
+         0341    2E    00    04    00
+         0345    3C    32    80
+    48   0348    C2    34    2C    16   FRANK:  ASCVH 0C2,<PLACEMENT DE 1 A >
+         034C    1A    1E    2E    1E
+         0350    30    3C    00    1C
+         0354    1E    00    04    00
+         0358    16    80
+    49   035A    BC    38    16    30   GRANK:  ASCVH 0BC,<RANGLISTE VON 1 ZUM >
+         035E    22    2C    26    3A
+         0362    3C    1E    00    40
+         0366    32    30    00    04
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+         036A    00    48    3E    2E
+         036E    80
+    50   036F    C8    38    16    30   SRANK:  ASCVH 0C8,<RANKING DE 1 A >
+         0373    2A    26    30    22
+         0377    00    1C    1E    00
+         037B    04    00    16    80
+    51                                  ;
+    52   037F    D9    38    16    3C   ERATE:  ASCVH <RATE YOURSELF>
+         0383    1E    00    46    32
+         0387    3E    38    3A    1E
+         038B    2C    A0
+    53   038D    DC    1E    40    16   FRATE:  ASCVH <EVALUEZ\VOUS>
+         0391    2C    3E    1E    48
+         0395    4C    40    32    3E
+         0399    BA
+    54   039A    D6    3A    1E    2C   GRATE:  ASCVH <SELBST RECHNEN>
+         039E    18    3A    3C    00
+         03A2    38    1E    1A    24
+         03A6    30    1E    B0
+    55   03A9    DF    1A    16    2C   SRATE:  ASCVH <CALIFIQUESE>
+         03AD    26    20    26    36
+         03B1    3E    1E    3A    9E
+    56                                  ;
+    57   03B5                           ENOVIC:
+    58   03B5    AA    30    32    40   FNOVIC: ASCVH 0AA,<NOVICE>
+         03B9    26    1A    9E
+    59   03BC    AA    30    32    40   SNOVIC: ASCVH 0AA,<NOVICIO>
+         03C0    26    1A    26    B2
+    60   03C4    AA    16    30    20   GNOVIC: ASCVH 0AA,<ANFAENGER>
+         03C8    16    1E    30    22
+         03CC    1E    B8
+    61                                  ;
+    62   03CE                           EEXPER:
+    63   03CE    4A    1E    44    34   FEXPER: ASCVH 4A,<EXPERT>
+         03D2    1E    38    BC
+    64   03D5    45    1E    44    34   SEXPER: ASCVH 45,<EXPERTO>
+         03D9    1E    38    3C    B2
+    65   03DD    40    1E    38    20   GEXPER: ASCVH 40,<ERFAHREN>
+         03E1    16    24    38    1E
+         03E5    B0
+    66                                  ;
+    67   03E6                           EBONUS:
+    68   03E6                           FBONUS:
+    69   03E6                           GBONUS:
+    70   03E6    8B    18    32    30   SBONUS: ASCVH 8B,<BONUS>
+         03EA    3E    BA
+    71                                  ;
+    72   03EC    E8    3C    26    2E   ETIME:  ASCVH 0E8,<TIME>
+         03F0    9E
+    73   03F1    E0    1C    3E    38   FTIME:  ASCVH 0E0,<DUREE>
+         03F5    1E    9E
+    74   03F7    E8    48    1E    26   GTIME:  ASCVH 0E8,<ZEIT>
+         03FB    BC
+    75   03FC    E4    3C    26    1E   STIME:  ASCVH 0E4,<TIEMPO>
+         0400    2E    34    B2
+    76                                  ;
+    77   0403                           ELEVEL:
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+    78   0403    8B    2C    1E    40           ASCVH 8B,<LEVEL>
+         0407    1E    AC
+    79   0409    8B    30    26    40   FLEVEL: ASCVH 8B,<NIVEAU>
+         040D    1E    16    BE
+    80   0410    8B    22    38    16   GLEVEL: ASCVH 8B,<GRAD>
+         0414    9C
+    81   0415    8B    30    26    40   SLEVEL: ASCVH 8B,<NIVEL>
+         0419    1E    AC
+    82                                  ;
+    83   041B                           EHOLE:
+    84   041B    8B    24    32    2C           ASCVH 8B,<HOLE>
+         041F    9E
+    85   0420                           FHOLE:
+    86   0420    8B    3C    38    32           ASCVH 8B,<TROU>
+         0424    BE
+    87   0425    8B    24    32    46   SHOLE:  ASCVH 8B,<HOYO>
+         0429    B2
+    88   042A    8B    2C    32    1A   GHOLE:  ASCVH 8B,<LOCH>
+         042E    A4
+    89                                  ;
+    90   042F    DC    26    30    3A   EINSER: ASCVH <INSERT COINS>
+         0433    1E    38    3C    00
+         0437    1A    32    26    30
+         043B    BA
+    91   043C    C1    26    30    3C   FINSER: ASCVH <INTRODUIRE LES PIECES>
+         0440    38    32    1C    3E
+         0444    26    38    1E    00
+         0448    2C    1E    3A    00
+         044C    34    26    1E    1A
+         0450    1E    BA
+    92   0452    D6    22    1E    2C   GINSER: ASCVH <GELD EINWERFEN>
+         0456    1C    00    1E    26
+         045A    30    42    1E    38
+         045E    20    1E    B0
+    93   0461    D6    26    30    3A   SINSER: ASCVH <INSERTE FICHAS>
+         0465    1E    38    3C    1E
+         0469    00    20    26    1A
+         046D    24    16    BA
+    94                                  ;
+    95   0470                           ECMODE:
+    96   0470                           FCMODE:
+    97   0470                           GCMODE:
+    98   0470    00    20    38    1E   SCMODE: ASCVH 0,<FREE PLAY>
+         0474    1E    00    34    2C
+         0478    16    C6
+    99                                  ;
+   100   047A    0E    04    00    1A   ECMOD1: ASCVH 0E,<1 COIN 2 PLAYS>
+         047E    32    26    30    00
+         0482    06    00    34    2C
+         0486    16    46    BA
+   101   0489    FA    04    00    34   FCMOD1: ASCVH 0FA,<1 PIECE 2 JOUEURS>
+         048D    26    1E    1A    1E
+         0491    00    06    00    28
+         0495    32    3E    1E    3E
+         0499    38    BA
+   102   049B    00    04    00    2E   GCMOD1: ASCVH 0,<1 MUENZ 2 SPIELE>
+         049F    3E    1E    30    48
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+         04A3    00    06    00    3A
+         04A7    34    26    1E    2C
+         04AB    9E
+   103   04AC    FA    04    00    2E   SCMOD1: ASCVH 0FA,<1 MONEDA 2 JUEGOS>
+         04B0    32    30    1E    1C
+         04B4    16    00    06    00
+         04B8    28    3E    1E    22
+         04BC    32    BA
+   104                                  ;
+   105   04BE    14    04    00    1A   ECMOD2: ASCVH 14,<1 COIN 1 PLAY>
+         04C2    32    26    30    00
+         04C6    04    00    34    2C
+         04CA    16    C6
+   106   04CC    00    04    00    34   FCMOD2: ASCVH 0,<1 PIECE 1 JOUEUR>
+         04D0    26    1E    1A    1E
+         04D4    00    04    00    28
+         04D8    32    3E    1E    3E
+         04DC    B8
+   107   04DD    00    04    00    2E   GCMOD2: ASCVH 0,<1 MUENZE 1 SPIEL>
+         04E1    3E    1E    30    48
+         04E5    1E    00    04    00
+         04E9    3A    34    26    1E
+         04ED    AC
+   108   04EE    00    04    00    2E   SCMOD2: ASCVH 0,<1 MONEDA 1 JUEGO>
+         04F2    32    30    1E    1C
+         04F6    16    00    04    00
+         04FA    28    3E    1E    22
+         04FE    B2
+   109                                  ;
+   110   04FF    0E    06    00    1A   ECMOD3: ASCVH 0E,<2 COINS 1 PLAY>
+         0503    32    26    30    3A
+         0507    00    04    00    34
+         050B    2C    16    C6
+   111   050E    FA    06    00    34   FCMOD3: ASCVH 0FA,<2 PIECES 1 JOUEUR>
+         0512    26    1E    1A    1E
+         0516    3A    00    04    00
+         051A    28    32    3E    1E
+         051E    3E    B8
+   112   0520    FA    06    00    2E   GCMOD3: ASCVH 0FA,<2 MUENZEN 1 SPIEL>
+         0524    3E    1E    30    48
+         0528    1E    30    00    04
+         052C    00    3A    34    26
+         0530    1E    AC
+   113   0532    FA    06    00    2E   SCMOD3: ASCVH 0FA,<2 MONEDAS 1 JUEGO>
+         0536    32    30    1E    1C
+         053A    16    3A    00    04
+         053E    00    28    3E    1E
+         0542    22    B2
+   114                                  ;
+   115   0544                           ZATLIS::
+   116   0544                           EATARI:
+   117   0544                           FATARI:
+   118   0544                           GATARI:
+   119   0544    D3    50    00    2E   SATARI: ASCVH <^ MCMLXXX ATARI>
+         0548    1A    2E    2C    44
+         054C    44    44    00    16
+         0550    3C    16    38    A6
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+   120   0554                           ZATLIE:
+   121         0010G                    ZATLIC==ZATLIE-ZATLIS
+   122                                  ;
+   123   0554                           ECREDI:
+   124   0554    A0    1A    38    1E   FCREDI: ASCVH 0A0,<CREDITS >
+         0558    1C    26    3C    3A
+         055C    80
+   125   055D    A0    2A    38    1E   GCREDI: ASCVH 0A0,<KREDITE >
+         0561    1C    26    3C    1E
+         0565    80
+   126   0566    A0    1A    38    1E   SCREDI: ASCVH 0A0,<CREDITOS >
+         056A    1C    26    3C    32
+         056E    3A    80
+   127                                  ;
+   128   0570                           EBONPT:
+   129   0570                           FBONPT:
+   130   0570                           GBONPT:
+   131   0570                           SBONPT:
+   132   0570    DA    18    32    30           ASCVH 0DA,<BONUS >
+         0574    3E    3A    80
+   133                                  ;
+   134   0577    D0    06    00    1A   E2GAME: ASCVH <2 CREDIT MINIMUM>
+         057B    38    1E    1C    26
+         057F    3C    00    2E    26
+         0583    30    26    2E    3E
+         0587    AE
+   135   0588    D6    06    00    28   F2GAME: ASCVH <2 JEUX MINIMUM>
+         058C    1E    3E    44    00
+         0590    2E    26    30    26
+         0594    2E    3E    AE
+   136   0597    D0    06    00    3A   G2GAME: ASCVH <2 SPIELE MINIMUM>
+         059B    34    26    1E    2C
+         059F    1E    00    2E    26
+         05A3    30    26    2E    3E
+         05A7    AE
+   137   05A8    D3    06    00    28   S2GAME: ASCVH <2 JUEGOS MINIMO>
+         05AC    3E    1E    22    32
+         05B0    3A    00    2E    26
+         05B4    30    26    2E    B2
+   138                                  ;
+   139   05B8    C8    18    32    30   EBOLIF: ASCVH 0C8,<BONUS EVERY >
+         05BC    3E    3A    00    1E
+         05C0    40    1E    38    46
+         05C4    80
+   140   05C5    CE    18    32    30   FBOLIF: ASCVH -50.,<BONUS CHAQUE >
+         05C9    3E    3A    00    1A
+         05CD    24    16    36    3E
+         05D1    1E    80
+   141   05D3    CE    18    32    30   GBOLIF: ASCVH -50.,<BONUS JEDE >
+         05D7    3E    3A    00    28
+         05DB    1E    1C    1E    80
+   142   05DF    C8    18    32    30   SBOLIF: ASCVH 0C8,<BONUS CADA >
+         05E3    3E    3A    00    1A
+         05E7    16    1C    16    80
+   143                                  ;
+   144   05EB    B8    16    40    32   ESPIKE: ASCVH -72.,<AVOID SPIKES>
+         05EF    26    1C    00    3A
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+LITERALS
+
+         05F3    34    26    2A    1E
+         05F7    BA
+   145   05F8    88    16    3C    3C   FSPIKE: ASCVH -120.,<ATTENTION AUX LANCES>
+         05FC    1E    30    3C    26
+         0600    32    30    00    16
+         0604    3E    44    00    2C
+         0608    16    30    1A    1E
+         060C    BA
+   146   060D    96    3A    34    26   GSPIKE: ASCVH 96,<SPITZEN AUSWEICHEN>
+         0611    3C    48    1E    30
+         0615    00    16    3E    3A
+         0619    42    1E    26    1A
+         061D    24    1E    B0
+   147   0620    A0    1E    40    26   SSPIKE: ASCVH -96.,<EVITE LAS PUNTAS>
+         0624    3C    1E    00    2C
+         0628    16    3A    00    34
+         062C    3E    30    3C    16
+         0630    BA
+   148                                  ;
+   149   0631    E0    2C    1E    40   EAPROA: ASCVH 0E0,<LEVEL>
+         0635    1E    AC
+   150   0637    DA    30    26    40   FAPROA: ASCVH 0DA,<NIVEAU>
+         063B    1E    16    BE
+   151   063E    E2    22    38    16   GAPROA: ASCVH 0E2,<GRAD>
+         0642    9C
+   152   0643    E0    30    26    40   SAPROA: ASCVH 0E0,<NIVEL>
+         0647    1E    AC
+   153                                  ;
+   154   0649                           ESUPZA:
+   155   0649    C4    3A    3E    34   FSUPZA: ASCVH <SUPERZAPPER RECHARGE>
+         064D    1E    38    48    16
+         0651    34    34    1E    38
+         0655    00    38    1E    1A
+         0659    24    16    38    22
+         065D    9E
+   156   065E    CD    30    1E    3E   GSUPZA: ASCVH <NEUER SUPERZAPPER>
+         0662    1E    38    00    3A
+         0666    3E    34    1E    38
+         066A    48    16    34    34
+         066E    1E    B8
+   157   0670    CD    30    3E    1E   SSUPZA: ASCVH <NUEVO SUPERZAPPER>
+         0674    40    32    00    3A
+         0678    3E    34    1E    38
+         067C    48    16    34    34
+         0680    1E    B8
+   158                                  ;
+   159   0682  0000'                    LNGTAB: .WORD ENGMSG
+   160   0684  003C'                            .WORD FREMSG
+   161   0686  0078'                            .WORD GERMSG
+   162   0688  00B4'                            .WORD SPAMSG
+   163                                          .SBTTL  INITIALIZE LANGUAGE POINTER
+   164   068A                           INILIT:
+   165   068A    AD  0E00                       LDA INOP1               ;SET UP BONUS LIFE INTERVAL
+   166   068D    85    0A                       STA OPTIN2
+   167   068F    29    38                       AND I,38
+   168   0691    4A                             LSR
+   169   0692    4A                             LSR
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+INITIALIZE LANGUAGE POINTER
+
+   170   0693    4A                             LSR
+   171   0694    AA                             TAX
+   172   0695    BD  06C6'                      LDA X,TBLIFI
+   173   0698    8D  0156                       STA BLIFIN
+   174   069B    AD  0D00                       LDA INOP0               ;READ OPTION SWITCHES
+   175   069E    49    02                       EOR I,2
+   176   06A0    85    09                       STA $CMODE
+   177   06A2    A5    0A                       LDA OPTIN2              ;LIVES/GAME
+   178   06A4    2A                             ROL
+   179   06A5    2A                             ROL
+   180   06A6    2A                             ROL
+   181   06A7    29    03                       AND I,3
+   182   06A9    AA                             TAX
+   183   06AA    BD  06CE'                      LDA X,GAMLVS
+   184   06AD    8D  0158                       STA LVSGAM
+   185   06B0    A5    0A                       LDA OPTIN2              ;LANGUAGE CHOICE
+   186   06B2    29    06                       AND I,06
+   187   06B4    A8                             TAY
+   188   06B5    B9  0682'                      LDA Y,LNGTAB            ;SET POINTER TO LANGUAGE PTRS.
+   189   06B8    85    AC                       STA LITRAL
+   190   06BA    B9  0683'                      LDA Y,LNGTAB+1
+   191   06BD    85    AD                       STA LITRAL+1
+   192   06BF    20  0000G                      JSR GETOP3
+   193   06C2    8D  016A                       STA OPTIN3
+   194   06C5    60                             RTS
+   195   06C6    02    01    03    04   TBLIFI: .BYTE 2,1,3,4,5,6,7,0
+         06CA    05    06    07    00
+   196   06CE    03    04    05    02   GAMLVS: .BYTE 3,4,5,2
+   197         0001'                            .END
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		AUDCTL= 60C8   		AUDC1 = 60C1
+AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8   		BFACTR  0078
+BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007   		BOFLAS  0124
+BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D   		BOOMTI  010E
+BUFACT  0415   		BUFRDY  0054   		CAMPC   010B   		CAMSTA  010C   		CBOOM = 0024
+CBUF1 = 0078   		CDBOOM= 0004   		CDBOXP= 0012   		CDGETI= 0006   		CDGOVR= 000C
+CDHITB= 000A   		CDLADR= 0014   		CDLOGP= 0014   		CDPLAY= 0000   		CDPLPL= 000E
+CDPRST= 0010   		CDREQR= 0008   		CDROP = 0020   		CDSYST= 0002   		CD2GAM= 0016
+CENDGA= 0008   		CENDLI= 0006   		CENDWA= 000E   		CGETIN= 0012   		CHACHA  00A7
+CHACOU  0135   		CHAINV  00A8   		CHARCO  02F2   		CHARL1  02AD   		CHARL2  02C0
+CHARY   02D3   		CHARYL  02E6   		CHISCH= 0010   		CINIRA= 001C   		CLOGO = 001A
+CNEWAV= 000C   		CNEWGA= 0000   		CNEWLI= 0002   		CNEWV2= 0018   		CNOTFO= 0014
+CNWLF2= 001E   		COCKTA= 0010   		COCTAL  0117   		COLOR   009E   		COLPOR= 0800
+COLRAM  0019   		CPAUSE= 000A   		CPLAY = 0004   		CREQRA= 0016   		CSYSTM= 0022
+CURCOL= 0001   		CURMOD  0106   		CURNTX  006A   		CURNTY  006C   		CURSL1  0200
+CURSL2  0201   		CURSPO  0051   		CURSVH  0105   		CURSVL  0104   		CURSY   0202
+CURSYL  0107   		CURWAV  009F   		DBSW    004C   		DEPCOL= 0006   		EACTL = 6040
+EADAL = 6000   		EAIN  = 6050   		EAPROA  0631 R 		EATARI  0544 R 		EBOLIF  05B8 R
+EBONPT  0570 R 		EBONUS  03E6 R 		ECMODE  0470 R 		ECMOD1  047A R 		ECMOD2  04BE R
+ECMOD3  04FF R 		ECREDI  0554 R 		EENTER  01D2 R 		EEXPER  03CE R 		EGAMOV  012C R
+EHIGHS  0302 R 		EHOLE   041B R 		EINSER  042F R 		ELEVEL  0403 R 		ELICNT  0123
+EMCTRS= 0003   		ENGMSG= 0000 RG		ENOVIC  03B5 R 		ENSIZE  0151   		EPLAY   01BA R
+EPLAYR  015E R 		EPLYR2  015E R 		EPRESS  0180 R 		EPRFIR  029A R 		EPRMOV  0230 R
+ERANK   0335 R 		ERATE   037F R 		ESHCOU  00A6   		ESPIKE  05EB R 		ESUPZA  0649 R
+ETIME   03EC R 		EXICAM  010A   		EXL     005E   		EXPCOL= 0000   		EXPCOU  0116
+EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302   		EXPLOY  030A   		EYEFAC  0065
+EYH     005B   		EYL     005F   		EYLDES  005D   		EYLL    005C   		EZL     0060
+E2GAME  0577 R 		FAPROA  0637 R 		FARY    014E   		FATARI  0544 R 		FBLUE = 000B
+FBOLIF  05C5 R 		FBONPT  0570 R 		FBONUS  03E6 R 		FCMODE  0470 R 		FCMOD1  0489 R
+FCMOD2  04CC R 		FCMOD3  050E R 		FCREDI  0554 R 		FENTER  01E6 R 		FEXPER  03CE R
+FGAMOV  0136 R 		FGREEN= 0007   		FHIGHS  030E R 		FHOLE   0420 R 		FINSER  043C R
+FLASH = 000F   		FLEVEL  0409 R 		FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142
+FNOVIC  03B5 R 		FPLAY   01BF R 		FPLAYR  0166 R 		FPLYR2  0166 R 		FPRESS  018C R
+FPRFIR  02AF R 		FPRMOV  0244 R 		FRANK   0348 R 		FRATE   038D R 		FRED  = 000C
+FREMSG= 003C R 		FRTIMR  0053   		FSPIKE  05F8 R 		FSUPZA  0649 R 		FTIME   03F1 R
+FUSECO  0146   		F2GAME  0588 R 		GAMLVS  06CE R 		GAMOP1  071E   		GAMOP3  071F
+GAPROA  063E R 		GATARI  0544 R 		GBOLIF  05D3 R 		GBONPT  0570 R 		GBONUS  03E6 R
+GCMODE  0470 R 		GCMOD1  049B R 		GCMOD2  04DD R 		GCMOD3  0520 R 		GCREDI  055D R
+GENTER  01FF R 		GERMSG= 0078 R 		GETOP3= ****  G		GEXPER  03DD R 		GGAMOV  0144 R
+GHIGHS  031F R 		GHOLE   042A R 		GINSER  0452 R 		GLEVEL  0410 R 		GNOVIC  03C4 R
+GPLAY   01C5 R 		GPLAYR  016E R 		GPLYR2  016E R 		GPRESS  019E R 		GPRFIR  02CA R
+GPRMOV  0263 R 		GRANK   035A R 		GRATE   039A R 		GREEN = 0005   		GSPIKE  060D R
+GSUPZA  065E R 		GTIME   03F7 R 		G2GAME  0597 R 		HARDWA= 6000   		HIRATE  0127
+HIWAVE  0126   		HRANKH= 0620   		HRANKL  061E   		HRANKM= 061F   		HRED  = 000D
+HSCORH= 0708   		HSCORL= 0706   		HSCORM= 0707   		ICHCOL= 0000   		ILINDD= 00F0
+ILINLI= 0010   		INCCOU  0109   		INDEX1  0037   		INDEX2  0038   		INDEX3  0039
+INDEX4  003A   		INDYHI  003C   		INDYLO  003B   		INILIT  068A RG		ININDX  0604
+INITAL  0606   		INMCOU  0108   		INOP0 = 0D00   		INOP1 = 0E00   		INPUT   004A
+INTACK= 5000   		INTENS  0098   		INTIME  0128   		INVABI= 0007   		INVACT  02A6
+INVAC1  0283   		INVAC2  028A   		INVAL1  02B9   		INVAL2  02CC   		INVAY   02DF
+INVAYL  029F   		INVCAM  0291   		INVCAR= 0003   		INVCOL= 0003   		INVDIR= 0080
+INVFIR= 0040   		INVLOO  0298   		INVMOT= 0080   		INVROT= 0040   		INVSEQ= 0018
+IN1   = 0C00   		LEDOFF= 0003   		LEFSID  007B   		LETCOL= 0005   		LEVELY  010F
+LIFSXH  035A   		LIFSXL  036A   		LIFSZH  037A   		LIFSZL  038A   		LINANG  03EE
+LINEX   03CE   		LINEXM  0435   		LINEY   03AC   		LINEZ   03DE   		LINEZM  0445
+LINSCA  0059   		LINSTA  039A   		LINSXH  031A   		LINSXL  032A   		LINSZH  033A
+LINSZL  034A   		LITRAL  00AC   		LIVES1  0048   		LIVES2  0049   		LNGTAB  0682 R
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+SYMBOL TABLE
+
+LSCORH  0042   		LSCORL  0040   		LSCORM  0041   		LVSGAM  0158   		MAH   = 6081
+MAL   = 6080   		MAPROA= 0038  G		MATARI= 002C  G		MATRAC= 0080   		MBH   = 6083
+MBL   = 6082   		MBOLIF= 0034  G		MBONPT= 0030  G		MBONUS= 001A  G		MBSTAR= 6080
+MCMODE= 0024  G		MCMOD1= 0026  G		MCMOD2= 0028  G		MCMOD3= 002A  G		MCOINC= 0002
+MCOINL= 0004   		MCOINR= 0001   		MCREDI= 002E  G		MDITES= 0020   		MDYPL = 6098
+MECHS = 0003   		MEH   = 6085   		MEL   = 6084   		MENTER= 000A  G		MEXPER= 0018  G
+MFAKE = 0080   		MFH   = 6087   		MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004
+MGAMOV= 0000  G		MGTMOD= 0040   		MHALT = 0040   		MHIGHS= 0010  G		MHOLE = 0020  G
+MINSER= 0022  G		MLCCNT= 0004   		MLED1 = 0002   		MLED2 = 0001   		MLEVEL= 001E  G
+MMCCNT= 0002   		MNL   = 608C   		MNOVIC= 0016  G		MOPTI4= 0020   		MOPT13= 0007
+MPLAY = 0008  G		MPLAYR= 0002  G		MPLYR2= 0004  G		MPRESS= 0006  G		MPRFIR= 000E  G
+MPRMOV= 000C  G		MRANK = 0012  G		MRATE = 0014  G		MRCCNT= 0001   		MSGLBS= 00F0 RG
+MSPIKE= 0036  G		MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040   		MSUPZA= 003A  G
+MSUZA = 0008   		MSZXD = 6094   		MTEMP   0031   		MTEST = 0010   		MTIME = 001C  G
+MVINVX= 0008   		MVINVY= 0010   		MXH   = 6089   		MXL   = 6088   		MXPH  = 6096
+MXPL  = 6095   		MYHIGH= 6070   		MYLOW = 6060   		MZHH  = 6090   		MZHL  = 608F
+MZLH  = 608E   		MZLL  = 608D   		M2GAME= 0032  G		M3KHTI= 0080   		NCHARG= 000C
+NEARY   014D   		NEOFLI  014F   		NEWAIT  00A3   		NEWPLA  003F   		NEXPLO= 0008
+NGAMES  0100   		NGAME0  040E   		NGAMIH  040D   		NGAMIL  040C   		NGAM2H  0410
+NGAM2L  040F   		NGAM20  0411   		NGAVGH  0413   		NGAVGL  0412   		NGAVGZ  0414
+NHISCO= 0008   		NICHAR= 0004   		NINVAD= 0007   		NLINES= 0010   		NMSGS = 001E
+NNYMPH= 0040   		NPARTI= 0010   		NPCHAR= 0008   		NPLANE= 0008   		NPLAYR  0101
+NRANKS= 0063   		NROMS = 000C   		NUMPLA  003E   		NWNYMC  015B   		NWTELI  015A
+NYMCOL= 000C   		NYMCOU  03AB   		NYMPL   0203   		NYMPY   0243   		OBJIND  0055
+OCURSL  00A5   		OFRTIM  00A4   		OLDLHI  00AB   		OLDLLO  00AA   		OLOFLI  0150
+OM2GAM= 0001   		OPFLIP  013D   		OPFUSE  0141   		OPPULS  013E   		OPSPIN  0140
+OPTANK  013F   		OPTIN1  0009   		OPTIN2  000A   		OPTIN3  016A   		OTB     0052
+OUTANK= 60E0   		OUT0  = 4000   		PARLIX  0203   		PARLIY  0223   		PARLIZ  0243
+PARLXA= 0020   		PARLXV  02C3   		PARLYA= 0020   		PARLYV  02E3   		PARLZA= 0020
+PARLZV  0303   		PARTIX  0263   		PARTIY  0283   		PARTIZ  02A3   		PARTXA= 0000
+PARTXV  0323   		PARTYA= 0000   		PARTYV  0343   		PARTZA= 0000   		PARTZV  0363
+PCHCOL= 0001   		PCVELO= 0009   		PDIRED= 000B   		PDIWHI= 0009   		PDIYEL= 000A
+PLAGRO  0115   		PLANEY  03FE   		PLAYUP  003D   		POKEY = 60C0   		POKEY2= 60D0
+POTGO = 60CB   		POTGO2= 60DB   		PROG  = 9000   		PSCALE  016B   		PSHCTR= 0008
+PUCHDE  00B2   		PULPOT  0157   		PULSCO  0143   		PULSON  0148   		PULTIM  0147
+PULVEL= FEA0   		PURPLE= 0002   		PXL     0056   		PYL     0057   		PZL     0058
+QDSTAT  0001   		QFRAME  0003   		QNXTST  0002   		QSTATE  0000   		QSTATU  0005
+QTMPAU  0004   		QT1     00B5   		QT2     016C   		QT3     0455   		QT4     0720
+QT5     011F   		QT6     011B   		QUASEC= 0005   		RANDOM= 60CA   		RANDO2= 60DA
+RANKS   0600   		RED   = 0003   		RITSID  007C   		ROMSTA= 3000   		ROTDIS  0114
+ROTFLG  0113   		RSCORH  0045   		RSCORL  0043   		RSCORM  0044   		RUNGVG  00B0
+SAPROA  0643 R 		SATARI  0544 R 		SAVEND  03CE   		SAVEP   03BC   		SAVEX   0035
+SAVEY   0036   		SBOLIF  05DF R 		SBONPT  0570 R 		SBONUS  03E6 R 		SCFL    0079
+SCMODE  0470 R 		SCMOD1  04AC R 		SCMOD2  04EE R 		SCMOD3  0532 R 		SCREDI  0566 R
+SECOND= 0014   		SECOPH  040B   		SECOPL  0409   		SECOPM  040A   		SECOUH  0408
+SECOUL  0406   		SECOUM  0407   		SECUVG  00B6   		SECUVY  016E   		SENTER  021C R
+SEXPER  03D5 R 		SGAMOV  014E R 		SHIGHS  032D R 		SHOLE   0425 R 		SINSER  0461 R
+SKCTL = 60CF   		SKCTL2= 60DF   		SLEVEL  0415 R 		SNOVIC  03BC R 		SPACG = 0000
+SPAMSG= 00B4 R 		SPARE3  0133   		SPBINA  013A   		SPFTIM  013C   		SPINCO  0145
+SPLAY   01CB R 		SPLAYR  0177 R 		SPLINE  0139   		SPLYR2  0177 R 		SPOKST  0425
+SPRESS  01AD R 		SPRFIR  02E5 R 		SPRMOV  027D R 		SPXIND  013B   		SRANK   036F R
+SRATE   03A9 R 		SSPIKE  0620 R 		SSUPZA  0670 R 		STIME   03FC R 		SUBCOU  0099
+SUZCNT  03AA   		SUZTIM  0125   		SVGLIS  0076   		SWFINA  004E   		SWRELE  004F
+SWSTAT  004D   		SWSTRT  004D   		SXH     0062   		SXL     0061   		SYM   = 6092
+SZH     0064   		SZL     0063   		S2GAME  05A8 R 		TANCOL= 0002   		TANKCO  0144
+TBHD    0050   		TBLIFI  06C6 R 		TBLIND  0602   		TCMFLG  00A2   		TEMPL   002A
+TEMPX   002E   		TEMPY   002F   		TEMPZ   0030   		TEMP0   0029   		TEMP1   002A
+ALLANG	ATARI MAC65 VM03.09  00:00:24 PAGE 18+
+SYMBOL TABLE
+
+TEMP2   002B   		TEMP3   002C   		TEMP4   002D   		TIMHIS  0605   		TNKOUT  00A1
+TOUT0   00B4   		TRACOL= 0005   		TSLAMR  000B   		TURQOI= 0004   		TYPCOD  015E
+UNITXH  009B   		UNITXL  009A   		UNITZH  009D   		UNITZL  009C   		VECRAM= 2000
+VGBRIT  0073   		VGLIST  0074   		VGSIZE  0072   		VGSTAR= 4800   		VGSTOP= 5800
+VGY     00A9   		WAVEN1  0046   		WAVEN2  0047   		WCHAMX  011A   		WCHARF  0119
+WCHARI  0118   		WCHARL  0120   		WELCOL= 0006   		WELLID  0112   		WELTYP  0111
+WFLICA  015D   		WFLMAX  012E   		WFLMIN  0129   		WFUFRQ  015F   		WFUMAX  0132
+WFUMIN  012D   		WFUSCH  0159   		WFUSIH= 0169   		WFUSIL= 0164   		WHITE = 0000
+WINVIL  0160   		WINVIN  0165   		WINVJM  011D   		WINVMX  011C   		WNYMMX  011E
+WPULCA  015C   		WPULFI  016D   		WPUMAX  012F   		WPUMIN  012A   		WSPMAX  0131
+WSPMIN  012C   		WTACAR  0149   		WTAMAX  0130   		WTAMIN  012B   		WTCHDG= 5000
+WTFMAX  0136   		WTTFRA  00B3   		XADJL   0066   		XCOMP   006E   		X0H     0080
+X0L     0078   		X1H     0081   		X1L     0079   		X2H     0082   		X2L     007A
+X3H     0083   		X3L     007B   		X4H     0084   		X4L     007C   		X5H     0085
+X5L     007D   		X6H     0086   		X6L     007E   		X7H     0087   		X7L     007F
+YCOMP = 0070   		YDEUNI  00A0   		YELLOW= 0001   		ZABFLI= 0000   		ZABFUS= 0004
+ZABPUL= 0001   		ZABTAN= 0002   		ZABTRA= 0003   		ZADEST  0121   		ZADJL   0068
+ZAPCOL= 0000   		ZATLIC= 0010  G		ZATLIE  0554 R 		ZATLIS  0544 RG		ZBLACK= 000F
+ZBLUE = 000B   		ZCARFL= 0001   		ZCARFU= 0003   		ZCARNO= 0000   		ZCARPU= 0002
+ZDIRDO= 0080   		ZDIRUP= 0000   		ZFIRNO= 0000   		ZFIRYE= 0040   		ZGREEN= 0007
+ZMOTJM= 0080   		ZMOTMO= 0000   		ZPNLOC  00AE   		ZPOFFS  00AF   		ZPURPL= 0008
+ZRED  = 000C   		ZROCCW= 0040   		ZROTCW= 0000   		ZTURQO= 0003   		ZWHITE= 0000
+ZYELLO= 0004   		Z0H     0090   		Z0L     0088   		Z1H     0091   		Z1L     0089
+Z2H     0092   		Z2L     008A   		Z3H     0093   		Z3L     008B   		Z4H     0094
+Z4L     008C   		Z5H     0095   		Z5L     008D   		Z6H     0096   		Z6L     008E
+Z7H     0097   		Z7L     008F   		$BC     0018   		$BCCNT  0016   		$CCTIM  0013
+$CMODE  0009   		$CNCT   0017   		$CNSTT  000D   		$COINA  0008   		$INTCT  0007
+$LAM    0008   		$LMBIT= 0008   		$LMTIM  000C   		$PSTSL  0010   		$TEST   0008
+$$CRDT  0006   		.MSNUM= 003C   		..N   = 0000   		..X   = 00B8   		...CSY= 012C R
+...ENG= 003C R 		...FRE= 0078 R 		...GER= 00B4 R 		...HLO= 0011   		...NUM= 0001
+...SPA= 00F0 R 		...X  = 0000
+. ABS.	0721	  00
+      	06D2	  01
+ERRORS DETECTED: 0
+FREE CORE: 11636. WORDS
+
+OBJ:ALLANG,OBJ:ALLANG.LST=ALLANG
+
+(OBJ:ALLANG.OBJ,OBJ:ALLANG.LST=DK1:ALLANG)
+
+A TOTAL OF 21,141 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.6     I/O TIME -  00:00:00.0
+
+                                                                                                                                                                                                                                                                                                                                 

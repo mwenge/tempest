@@ -1,0 +1,853 @@
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20
+TABLE OF CONTENTS
+
+   1-  2 ******************************************
+   1-  3 *					*
+   1-  4 *MODULE:		ALEXEC			*
+   1-  5 *PROGRAMMER:	DAVE THEURER		*
+   1-  6 *FUNCTION:	ALIENS EXECUTIVE	*
+   1-  7 *					*
+   1-  8 ******************************************
+   1- 18 **************************************************
+   1- 19 *						*
+   1- 20 *MODULE:		ALCOMN				*
+   1- 21 *PROGRAMMER:	DAVE THEURER			*
+   1- 22 *FUNCTION:	ALIENS CONSTANTS AND VARIABLES	*
+   1- 23 *		TO BE .INCLUDED IN:		*
+   1- 24 *		    ALGAME,ALDISP,ALHARD	*
+   1- 25 *						*
+   1- 26	COPYRIGHT 1980 ATARI, INC.  UNAUTHORIZED REPRODUCTION,
+   1- 27	ADAPTION, DISTRIBUTION, PERFORMANCE OR DISPLAY OF THIS
+   1- 28	COMPUTER PROGRAM OR THE ASSOCIATED AUDIOVISUAL WORK IS
+   1- 29	STRICTLY PROHIBITED.
+   1- 30 **************************************************
+   2-  4 CONSTANTS-COUNTS
+   2- 25 CONSTANTS-STATE CODES
+   4-  1 CONSTANTS-PICTURES
+   4- 22	BOOM
+   6-  1	HARDWARE DEFINITIONS
+   7-  1 VARIABLES-CONTROL
+   8-  1 VARIABLES-WORK
+   8- 22 VARIABLES-PLAYERS
+   8- 41 VARIABLES-SWITCHES
+   9-  1 VARIABLES-DISPLAY
+  11- 25	VARIABLES - PLAY
+  12-  1	CONSTANTS-COUNTS
+  12- 12	CONSTANTS-PLAYFIELD
+  12- 17	VARIABLES-OBJECT COUNTERS
+  13-  1	VARIABLES-OBJECT LOCATION + STATUS
+  13-137	VARIABLES - PAGE 1
+  16-  1 GLOBLS
+  16- 18 COLD START
+  17-  1 MAINLOOP
+  18-  1 STATE ROUTINE EXECUTOR
+  19-  1 PAUSE STATE
+  20-  2	PROCESS CREDITS
+  21-  1	NON-STATE DEPENDENT PROCESSING
+  22-  1 PREP-NEW GAME
+  23-  1 PREP-NEW LIFE
+  24-  1 PREP-NEW LIFE PART 2
+  25-  1 PREP-END OF WAVE SETUP STATE
+  26-  1 PREP-NEW WAVE SETUP STATE
+  27-  1 PREP-LOSS OF BASE PROCESS STATE
+  28-  1 PREP-END OF GAME PROCESS STATE
+  31-  2 UTILITY-MASKS
+  32-  1	COCKTAIL FLIP
+  35-  1 SCORE-CLEAR
+  35- 13 SCORE-ENEMY POINTS, GENERAL SCORE UPDATE
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 1
+
+
+     1                                  .TITLE ALEXEC - ALIENS EXECUTIVE
+     2                                          .SBTTL ******************************************
+     3                                          .SBTTL *                                        *
+     4                                          .SBTTL *MODULE:         ALEXEC                  *
+     5                                          .SBTTL *PROGRAMMER:     DAVE THEURER            *
+     6                                          .SBTTL *FUNCTION:       ALIENS EXECUTIVE        *
+     7                                          .SBTTL *                                        *
+     8                                          .SBTTL ******************************************
+     9
+    10         0000                             .REPT 0
+    11                                  DATE:           21-AUG-80
+    12                                  PROJECT #:      289
+    13                                  DISK #:         94, B37
+    14                                  LINK STRING:    ALGAME,ALDISP,ALHARD,ANVGUT,ALVRON
+    15                                          .ENDR
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 16
+GLOBLS
+
+     1                                          .SBTTL GLOBLS
+     2                                  ;
+     3                                  ;ENTRY POINTS DEFINED HERE
+     4                                  ;
+     5
+     6                                          .GLOBL MAINLN,UPSCOR,COCFLI
+     7                                  ;
+     8                                  ;ENTRY POINTS DEFINED IN OTHER MODULES
+     9                                  ;
+    10                                          .GLOBL DISPLA,RESET,INIDSP,PRSTAR,PLDROP,PRBOOM,EAUPD,SYSTEM
+    11                                          .GLOBL D70MSK,D07MSK
+    12                                          .GLOBL INISOU,SAUSON,SSLAMS
+    13                                          .GLOBL GETINI,HISCHK,INIRA0,INICHK
+    14                                          .GLOBL PLAY,MOVCUR
+    15                                          .GLOBL SWAPEN,CLRSCO,INEWAV,INEWLI,NEWAV2
+    16                                          .GLOBL PRORAT,INIRAT
+    17                                          .GLOBL BONSCO,LOGINI
+    18                                          .SBTTL COLD START
+    19         0000'                            .CSECT
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 17
+MAINLOOP
+
+     1                                          .SBTTL MAINLOOP
+     2
+     3                                  ;INPUT:		POWER ON RESET PREPARATION
+     4                                  ;OUTPUT:	NONE
+     5
+     6   0000    20  0000G              MAINLN: JSR INISOU              ;INITIALIZE SOUNDS
+     7   0003    A9    00                       LDA I,CNEWGA
+     8   0005    85    00                       STA QSTATE
+     9                                          BEGIN                   ;MAINLOOP
+    10                                          BEGIN                   ;LOOP UNTIL CURRENT FRAME HAS BEEN UP X MS.
+    11   0007    A5    53                       LDA FRTIMR
+    12   0009    C9    09                       CMP I,9
+    13   000B    90    FA                       CSEND
+    14   000D    A9    00                       LDA I,0                 ;RESTART FRAME TIMER
+    15   000F    85    53                       STA FRTIMR
+    16   0011    20  001D'                      JSR EXSTAT              ;EXECUTE APPROPRIATE GAME STATE
+    17   0014    20  00F1'                      JSR NONSTA              ;EXECUTE NON-STATE DEPENDENT CODE
+    18   0017    20  0000G                      JSR DISPLA              ;EXECUTE CODE TO DISPLAY NEW SCREEN
+    19   001A    18                             CLC
+    20   001B    90    EA                       CSEND                   ;LOOP ALWAYS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 18
+STATE ROUTINE EXECUTOR
+
+     1                                          .SBTTL STATE ROUTINE EXECUTOR
+     2
+     3                                  ;INPUT:		QSTATE: CODE FOR STATE ROUTINE TO EXECUTE
+     4                                  ;OUTPUT:	CONTROL PASSED TO ROUTINE
+     5
+     6   001D                           EXSTAT:
+     7   001D    AD  0D00                       LDA INOP0
+     8   0020    29    83                       AND I,83
+     9   0022    C9    82                       CMP I,82
+    10   0024    F0    00                       IFNE                    ;FREEZE & FREE PLAY?
+    11   0026    20  0000G                      JSR PRSTAR              ;PROCESS STAR FIELD
+    12   0029    A6    00                       LDX QSTATE
+    13   002B    A5    4E                       LDA SWFINA              ;SET MUST PROCESS FLAG
+    14   002D    09    80                       ORA I,MFAKE
+    15   002F    85    4E                       STA SWFINA
+    16   0031    BD  003B'                      LDA AX,ROUTAD+1
+    17   0034    48                             PHA
+    18   0035    BD  003A'                      LDA AX,ROUTAD
+    19   0038    48                             PHA
+    20   0025    13                             ENDIF
+    21   0039    60                     NOOPR:  RTS
+    22                                  ;
+    23                                  ;STATE ROUTINE ADDRESS
+    24                                  ;
+    25   003A  016B'                    ROUTAD: .WORD NEWGAM-1          ;NEW GAME
+    26   003C  019F'                            .WORD NEWLIF-1          ;NEW LIFE (AFTER LOSING A BASE)
+    27   003E  FFFFG                            .WORD PLAY-1            ;PLAY
+    28   0040  020E'                            .WORD ENDLIF-1          ;LIFE LOST
+    29   0042  0250'                            .WORD ENDGAM-1          ;END OF GAME
+    30   0044  005F'                            .WORD PAUSE-1           ;PAUSE
+    31   0046  0000                             .WORD 0                 ;NEW WAVE (AFTER SHOOTING ALL INVADERS)
+    32   0048  01EB'                            .WORD ENDWAV-1          ;END OF WAVE
+    33   004A  FFFFG                            .WORD HISCHK-1          ;CHECK FOR HI SCORES
+    34   004C  FFFFG                            .WORD GETINI-1          ;GET HI SCORE INITIALS
+    35   004E  0277'                            .WORD DLADR-1           ;DISPLAY HI SCORE TABLE
+    36   0050  FFFFG                            .WORD PRORAT-1          ;REQUEST PLAYER RATE
+    37   0052  FFFFG                            .WORD NEWAV2-1          ;NEW WAVE PART 2
+    38   0054  FFFFG                            .WORD LOGINI-1          ;LOGO INIT
+    39   0056  FFFFG                            .WORD INIRAT-1          ;MONSTER DELAY/DISPLAY
+    40   0058  01DA'                            .WORD NEWLF2-1          ;NEW LIFE PART 2
+    41   005A  FFFFG                            .WORD PLDROP-1          ;DROP MODE
+    42   005C  FFFFG                            .WORD SYSTEM-1          ;END WAVE CLEAN UP AFTER BONUS
+    43   005E  FFFFG                            .WORD PRBOOM-1          ;BOOM
+    44   0060                           ROUTEN:
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 19
+PAUSE STATE
+
+     1                                          .SBTTL PAUSE STATE
+     2
+     3                                  ;INPUT:		QNXTSTA: CODE FOR STATE ROUTINE TO EXECUTE AFTER PAUSE
+     4                                  ;		QTMPAUS: PAUSE TIMER (# OF X SECOND UNITS TO WAIT)
+     5                                  ;		QFRAME: FRAME COUNTER
+     6                                  ;
+     7                                  ;OUTPUT:	QTMPAUS,QSTATE UPDATED
+     8
+     9   0060                           PAUSE:
+    10   0060    A5    03                       LDA QFRAME
+    11   0062    2D  016B                       AND PSCALE
+    12   0065    D0    00                       IFEQ
+    13   0067    A5    04                       LDA QTMPAUS             ;YES
+    14   0069    F0    00                       IFNE                    ;AT 0? (STOP AT 0)
+    15   006B    C6    04                       DEC QTMPAUS             ;NO. DROP 1
+    16   006A    02                             ENDIF
+    17   006D    D0    00                       IFEQ                    ;AT 0?
+    18   006F    A5    02                       LDA QNXTSTA             ;YES. GO TO NEXT STATE
+    19   0071    85    00                       STA QSTATE
+    20   0073    A9    00                       LDA I,0                 ;RESET STANDARD TIMER SCALE
+    21   0075    8D  016B                       STA PSCALE
+    22   006E    09                             ENDIF
+    23   0066    11                             ENDIF
+    24   0078    4C  0000G                      JMP MOVCUR              ;UPDATE CURSOR (IF ALIVE)
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 20
+PAUSE STATE
+
+     1
+     2                                          .SBTTL  PROCESS CREDITS
+     3   007B    A5    06               PROCRE: LDA $$CRDT
+     4   007D    A0    00                       LDY I,0                 ;YES
+     5   007F    C9    02                       CMP I,2                 ;CC IF 1 CREDIT, CS IF 2 OR MORE
+     6   0081    A5    4E                       LDA SWFINA
+     7   0083    29    60                       AND I,MSTRT2!MSTRT1
+     8   0085    84    4E                       STY SWFINA
+     9   0087    F0    00                       IFNE                    ;EITHER START PRESSED?
+    10   0089    B0    00                       IFCC                    ;YES. 1 CREDIT?
+    11   008B    29    20                       AND I,MSTRT1            ;YES.
+    12   008D    B8    50    00                 ELSE
+         008A    05
+    13   0090    C8                             INY                     ;NO. 2 OR MORE CREDITS
+    14   0091    C6    06                       DEC $$CRDT              ;REMOVE 1 CREDIT
+    15   0093    29    40                       AND I,MSTRT2
+    16   008F    05                             ENDIF
+    17   0095    F0    00                       IFNE                    ;START?
+    18   0097    C6    06                       DEC $$CRDT              ;YES. REMOVE A CREDIT
+    19   0099    C8                             INY
+    20   0096    03                             ENDIF
+    21   009A    98                             TYA
+    22   009B    85    3E                       STA NUMPLA              ;SAVE # PLAYERS (0=ATTRACT)
+    23   009D    F0    00                       IFNE                    ;GAME?
+    24   009F    A5    05                       LDA QSTATUS
+    25   00A1    09    C0                       ORA I,MATRACT!MGTMOD    ;YES
+    26   00A3    85    05                       STA QSTATUS             ;SET GAME MODE
+    27   00A5    A9    00                       LDA I,0                 ;ZERO BONUS COUNTER
+    28   00A7    85    16                       STA $BCCNT
+    29   00A9    85    18                       STA $BC
+    30   00AB    A9    00                       LDA I,CNEWGA
+    31   00AD    85    00                       STA QSTATE              ;REQUEST NEW GAME STATE
+    32   00AF    C6    3E                       DEC NUMPLA              ;SET # PLAYERS=0 OR 1
+    33   00B1    A6    3E                       LDX NUMPLA
+    34   00B3    F0    00                       IFNE
+    35   00B5    A2    03                       LDX I,3                 ;2 PLAYERS
+    36   00B4    02                             ENDIF
+    37   00B7    FE  040C                       INC X,NGAMIL            ;UPDATE 1/2 GAME COUNT
+    38   00BA    D0    00                       IFEQ
+    39   00BC    FE  040D                       INC X,NGAMIH
+    40   00BB    03                             ENDIF
+    41   00BF    AD  0100                       LDA NGAMES
+    42   00C2    38                             SEC
+    43   00C3    65    3E                       ADC NUMPLA
+    44   00C5    C9    63                       CMP I,NRANKS
+    45   00C7    90    00                       IFCS                    ;MAX OUT
+    46   00C9    A9    63                       LDA I,NRANKS
+    47   00C8    02                             ENDIF
+    48   00CB    8D  0100                       STA NGAMES              ;COUNT # GAMES
+    49   009E    2F                             ENDIF
+    50   00CE    B8    50    00                 ELSE
+         0088    48
+    51   00D1    A5    50                       LDA TBHD                ;ATTRACT MODE D-CREDITS
+    52   00D3    F0    00                       IFNE                    ;TRYING TO PLAY?
+    53   00D5    24    05                       BIT QSTATUS             ;YES
+    54   00D7    30    00                       IFPL                    ;ATTRACT?
+    55   00D9    A9    10                       LDA I,CDPRST            ;YES. PRESS START DISPLAY
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 20+
+PROCESS CREDITS
+
+    56   00DB    85    01                       STA QDSTATE
+    57   00DD    A9    20                       LDA I,020
+    58   00DF    85    04                       STA QTMPAUS
+    59   00E1    A9    0A                       LDA I,CPAUSE
+    60   00E3    85    00                       STA QSTATE
+    61   00E5    A9    14                       LDA I,CDLADR            ;DISPLAY LADDER
+    62   00E7    85    02                       STA QNXTSTA
+    63   00E9    A9    00                       LDA I,0
+    64   00EB    85    50                       STA TBHD
+    65   00ED    8D  0123                       STA ELICNT              ;CLEAR AVOID SPIKES DISPLAY
+    66   00D8    17                             ENDIF
+    67   00D4    1B                             ENDIF
+    68   00D0    1F                             ENDIF
+    69   00F0    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 21
+NON-STATE DEPENDENT PROCESSING
+
+     1                                          .SBTTL  NON-STATE DEPENDENT PROCESSING
+     2   00F1                           NONSTA:
+     3   00F1    AD  0C00                       LDA IN1
+     4   00F4    29    10                       AND I,MTEST
+     5   00F6    D0    00                       IFEQ                    ;SYSTEM STATUS DISPLAY?
+     6   00F8    A9    22                       LDA I,CSYSTM            ;YES
+     7   00FA    85    00                       STA QSTATE
+     8   00FC    B8    50    00                 ELSE
+         00F7    07
+     9                                                                  ;NO. PROCESS CREDITS
+    10   00FF    24    05                       BIT QSTATUS
+    11   0101    70    00                       IFVC                    ;ATTRACT?
+    12   0103    A5    0A                       LDA OPTIN2              ;YES
+    13   0105    29    01                       AND I,OM2GAM
+    14   0107    F0    00                       IFNE                    ;2 GAME MIN OPTION?
+    15   0109    A4    06                       LDY $$CRDT              ;YES.
+    16   010B    D0    00                       IFEQ                    ;CREDITS?
+    17   010D    A9    80                       LDA I,80                ;NO. SET 2 CREDITS MIN FLAG
+    18   010F    85    A2                       STA TCMFLG
+    19   010C    04                             ENDIF
+    20   0111    24    A2                       BIT TCMFLG              ;Y=CREDITS
+    21   0113    10    00                       IFMI                    ;2 GAME MIN?
+    22   0115    C0    02                       CPY I,2                 ;YES.
+    23   0117    B0    00                       IFCC                    ;2 GAMES?
+    24   0119    98                             TYA                     ;NO
+    25   011A    F0    00                       IFNE                    ;1 CREDIT?
+    26   011C    A9    16                       LDA I,CD2GAM            ;YES
+    27   011E    85    01                       STA QDSTATE
+    28   0120    A9    0A                       LDA I,CPAUSE
+    29   0122    85    00                       STA QSTATE
+    30   011B    08                             ENDIF
+    31   0124    4C  0139'                      JMP NOSTART             ;DISABLE START
+    32   0127    B8    50    00                 ELSE
+         0118    11
+    33   012A    A9    14                       LDA I,CDLADR
+    34   012C    85    00                       STA QSTATE
+    35   012E    A9    00                       LDA I,0                 ;NOT ANY MORE. ENABLE START
+    36   0130    85    A2                       STA TCMFLG
+    37   0129    08                             ENDIF
+    38   0114    1D                             ENDIF
+    39   0108    29                             ENDIF
+    40   0132    A5    06                       LDA $$CRDT              ;YES.
+    41   0134    F0    00                       IFNE                    ;CREDITS?
+    42   0136    20  007B'                      JSR PROCRE              ;YES. PROCESS CREDITS
+    43   0135    03                             ENDIF
+    44   0139    A5    09               NOSTART:        LDA $CMODE
+    45   013B    29    03                       AND I,03
+    46   013D    D0    00                       IFEQ                    ;FREE PLAY?
+    47   013F    A9    02                       LDA I,2
+    48   0141    85    06                       STA $$CRDT
+    49   013E    04                             ENDIF
+    50   0102    40                             ENDIF
+    51   00FE    44                             ENDIF
+    52   0143    E6    03                       INC QFRAME              ;UPDATE FRAME COUNTER
+    53   0145    A5    03                       LDA QFRAME
+    54   0147    29    01                       AND I,1
+    55   0149    F0    00                       IFNE
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 21+
+NON-STATE DEPENDENT PROCESSING
+
+    56   014B    20  0000G                      JSR EAUPD               ;PROCESS EAROM
+    57   014A    03                             ENDIF
+    58   014E    A5    0C                       LDA $LMTIM
+    59   0150    F0    00                       IFNE                    ;SLAM SWITCH ON?
+    60   0152    20  0000G                      JSR SSLAMS              ;SLAM SOUND
+    61   0151    03                             ENDIF
+    62   0155    AD  016C               ZQAT4C: LDA QT2
+    63   0158    F0    00                       IFNE
+    64   015A    A9    13                       LDA I,19.
+    65   015C    C5    9F                       CMP CURWAV
+    66   015E    B0    00                       IFCC
+    67   0160    F8                             SED
+    68   015F    01                             ENDIF
+    69   0159    07                             ENDIF
+    70   0161    A5    4E                       LDA SWFINA
+    71   0163    29    80                       AND I,MFAKE             ;SWITCH PROCESSED THIS FRAME?
+    72   0165    F0    00                       IFNE
+    73   0167    A9    00                       LDA I,0                 ;NO. FAKE PROCESS
+    74   0169    85    4E                       STA SWFINA
+    75   0166    04                             ENDIF
+    76   016B    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 22
+PREP-NEW GAME
+
+     1                                          .SBTTL PREP-NEW GAME
+     2
+     3                                  ;FUNCTION
+     4
+     5   016C    20  0000G              NEWGAM: JSR INICHK              ;INITIALIZE LANGUAGE PTRS, OPTIONS; CHECK FOR CHANGE
+     6   016F    20  0000G                      JSR INIDSP              ;INITIALIZE DISPLAY
+     7   0172    A5    05                       LDA QSTATUS
+     8   0174    10    00                       IFMI                    ;ATTRACT?
+     9   0176    20  02C2'                      JSR CLRSCO              ;NO. CLEAR SCORES
+    10   0175    03                             ENDIF
+    11   0179    A9    00                       LDA I,0
+    12   017B    85    49                       STA LIVES2              ;ONE PLAYER GAME (DEFAULT: PLAYER 2 DEAD)
+    13   017D    A6    3E                       LDX NUMPLA              ;GIVE EACH PLAYER "NEW GAME" EQUIP
+    14   017F    86    3D                       STX PLAYUP
+    15                                          BEGIN                   ;LOOP FOR EACH PLAYER IN GAME (1 OR 2)
+    16   0181    A6    3D                       LDX PLAYUP
+    17   0183    AD  0158                       LDA LVSGAM              ;GET # LIVES
+    18   0186    9D  0048                       STA AX,LIVES1           ;INITIAL # OF LIVES (GUNS)
+    19   0189    A9    FF                       LDA I,-1
+    20   018B    9D  0046                       STA AX,WAVEN1           ;FORCE REQUEST RATE STATE
+    21   018E    C6    3D                       DEC PLAYUP
+    22   0190    10    EF                       MIEND                   ;ENDLOOP AFTER ALL PLAYERS PROCESSED
+    23   0192    A9    00                       LDA I,0
+    24   0194    85    3F                       STA NEWPLA              ;START GAME WITH 1ST PLAYER UP.
+    25   0196    8D  0115                       STA PLAGRO              ;DEACTIVATE STAR FIELD
+    26   0199    A5    3E                       LDA NUMPLA              ;INDUCE "PLAY PLAYER 1" MESSAGE
+    27   019B    85    3D                       STA PLAYUP              ;IF 2 PLAYER GAME.
+    28   019D    4C  0000G                      JMP INIRA0              ;INITIALIZE FOR PLAYER RATE REQUEST
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 23
+PREP-NEW LIFE
+
+     1                                          .SBTTL PREP-NEW LIFE
+     2
+     3                                  ;FUNCTION:	NEW LIFE INITIALIZATION (LAST PLAYER LOST A BASE)
+     4                                  ;INPUT:
+     5
+     6         0014                     SECOND  =20.            ;FRAMES PER SECOND
+     7   01A0                           NEWLIF:
+     8   01A0    A9    00                       LDA I,CDPLAY
+     9   01A2    85    01                       STA QDSTATE             ;DEFAULT
+    10   01A4    A9    1E                       LDA I,CNWLF2
+    11   01A6    85    00                       STA QSTATE
+    12   01A8    85    02                       STA QNXTSTA
+    13   01AA    A5    3F                       LDA NEWPLA
+    14   01AC    C5    3D                       CMP PLAYUP
+    15   01AE    F0    00                       IFNE                    ;SAME PLAYER AS BEFORE?
+    16   01B0    85    3D                       STA PLAYUP              ;NO
+    17   01B2    A5    05                       LDA QSTATUS
+    18   01B4    10    00                       IFMI                    ;ATTRACT?
+    19   01B6    A9    0E                       LDA I,CDPLPL            ;NO.
+    20
+    21   01B8    85    01                       STA QDSTATE             ;WARN PLAYER DISPLAY
+    22   01BA    A9    0A                       LDA I,CPAUSE
+    23   01BC    85    00                       STA QSTATE              ;FOR 2 SECONDS
+    24   01BE    A9    50                       LDA I,4*SECOND          ;LONGER PAUSE
+    25   01C0    AC  0117                       LDY COCTAL
+    26   01C3    F0    00                       IFNE                    ;COCKTAIL?
+    27   01C5    A9    28                       LDA I,2*SECOND          ;YES. NOT AS LONG
+    28   01C4    02                             ENDIF
+    29   01C7    85    04                       STA QTMPAUS             ;(SWITCH PLACES)
+    30   01C9    20  0000G                      JSR SWAPEN              ;SWAP ENEMIES
+    31   01B5    16                             ENDIF
+    32   01AF    1C                             ENDIF
+    33   01CC    20  02A8'                      JSR COCFLI              ;COCKTAIL FLIP
+    34   01CF    A6    3D                       LDX PLAYUP
+    35   01D1    B5    46                       LDA X,WAVEN1
+    36   01D3    85    9F                       STA CURWAV              ;PLAYER'S WAVE #
+    37   01D5    20  0000G                      JSR INEWLI              ;INITIALIZE OBJECTS(DEACTIVATE)
+    38   01D8    4C  0000G                      JMP INISOU              ;SOUNDS OFF
+    39
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 24
+PREP-NEW LIFE PART 2
+
+     1                                          .SBTTL PREP-NEW LIFE PART 2
+     2   01DB                           NEWLF2:
+     3   01DB    A9    04                       LDA I,CPLAY             ;PLAY STATE FOR
+     4   01DD    85    02                       STA QNXTSTA             ;GAME AFTER PAUSE
+     5   01DF    A9    00                       LDA I,CDPLAY
+     6   01E1    85    01                       STA QDSTATE             ;AND DISPLAY NOW
+     7   01E3    A9    0A                       LDA I,CPAUSE
+     8   01E5    85    00                       STA QSTATE
+     9   01E7    A9    14                       LDA I,1*SECOND          ;PAUSE
+    10   01E9    85    04                       STA QTMPAUS
+    11   01EB    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 25
+PREP-END OF WAVE SETUP STATE
+
+     1                                          .SBTTL PREP-END OF WAVE SETUP STATE
+     2
+     3   01EC                           ENDWAV:
+     4   01EC    A6    3D                       LDX PLAYUP
+     5   01EE    B5    46                       LDA X,WAVEN1
+     6   01F0    C9    62                       CMP I,98.
+     7   01F2    B0    00                       IFCC                    ;MAX AT 99
+     8   01F4    F6    46                       INC X,WAVEN1            ;INCREMENT PLAYER'S WAVE #
+     9   01F6    E6    9F                       INC CURWAV
+    10   01F3    04                             ENDIF
+    11   01F8    A9    18                       LDA I,CNEWV2
+    12   01FA    85    00                       STA QSTATE
+    13   01FC    BD  0102                       LDA X,BONUS
+    14   01FF    F0    00                       IFNE                    ;BONUS?
+    15   0201    20  0000G                      JSR BONSCO              ;DETERMINE BONUS & UPDATE SCORE
+    16   0204    A2    FF                       LDX I,-1                ;INDICATE TEMPS HAVE BONUS
+    17   0206    20  02CC'                      JSR UPSCOR              ;UPDATE SCORE
+    18   0209    20  0000G                      JSR SAUSON              ;MAKE NOISE
+    19   0200    0B                             ENDIF
+    20                                                                  ;FALL INTO NEW WAVE
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 26
+PREP-NEW WAVE SETUP STATE
+
+     1                                          .SBTTL PREP-NEW WAVE SETUP STATE
+     2
+     3   020C    4C  0000G                      JMP INEWAV              ;INITIALIZE ENEMY POSITIONS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 27
+PREP-LOSS OF BASE PROCESS STATE
+
+     1                                          .SBTTL PREP-LOSS OF BASE PROCESS STATE
+     2
+     3   020F                           ENDLIF:
+     4   020F    A9    00                       LDA I,0*SECOND          ;NORMALLY NO PAUSE
+     5   0211    85    04                       STA QTMPAUS
+     6   0213    A6    3D                       LDX PLAYUP
+     7   0215    D6    48                       DEC X,LIVES1            ;DELETE ONE OF CURRENT PLAYER'S LIVES
+     8   0217    A5    48                       LDA LIVES1
+     9   0219    05    49                       ORA LIVES2
+    10   021B    D0    00                       IFEQ                    ;BOTH DEAD?
+    11   021D    20  0251'                      JSR ENDGAM              ;YES. END GAME STATE (5 HI CHECK)
+    12   0220    B8    50    00                 ELSE
+         021C    06
+    13   0223    A6    3D                       LDX PLAYUP
+    14   0225    B5    48                       LDA X,LIVES1            ;NO. AT LEAST 1 PLAYER IS ALIVE
+    15   0227    D0    00                       IFEQ                    ;CURRENT PLAYER DEAD?
+    16   0229    A9    0C                       LDA I,CDGOVR            ;YES. "GAME OVER PLAYER X"
+    17
+    18   022B    85    01                       STA QDSTATE
+    19   022D    A9    28                       LDA I,2*SECOND          ;LONGER PAUSE
+    20   022F    85    04                       STA QTMPAUS
+    21   0228    08                             ENDIF
+    22                                          BEGIN                   ;LOOP UNTIL GET TO NEXT LIVE PLAYER
+    23   0231    A5    3E                       LDA NUMPLA
+    24   0233    F0    00                       IFNE                    ;2 PLAYERS?
+    25   0235    A5    3F                       LDA NEWPLA              ;YES. SWITCH TO OTHER PLAYER
+    26   0237    49    01                       EOR I,01
+    27   0239    85    3F                       STA NEWPLA
+    28   0234    06                             ENDIF
+    29   023B    A6    3F                       LDX NEWPLA
+    30   023D    B5    48                       LDA X,LIVES1            ;TEST # OF BASES FOR OTHER PLAYER
+    31   023F    F0    F0                       NEEND                   ;EXIT IF PLAYER IS ALIVE
+    32   0241    A9    02                       LDA I,CNEWLIF           ;THEN NEW LIFE SETUP
+    33   0243    B4    46                       LDY X,WAVEN1
+    34   0245    C8                             INY
+    35   0246    D0    00                       IFEQ                    ;NEW GAME FOR NEXT PLAYER?
+    36   0248    A9    1C                       LDA I,CINIRAT           ;YES. INITIALIZE RATE REQUEST STATE
+    37   0247    02                             ENDIF
+    38   024A    85    02                       STA QNXTSTA
+    39   024C    A9    0A                       LDA I,CPAUSE            ;PAUSE FOR END OF LIFE TO SOAK IN
+    40   024E    85    00                       STA QSTATE
+    41   0222    2D                             ENDIF
+    42   0250    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 28
+PREP-END OF GAME PROCESS STATE
+
+     1                                          .SBTTL PREP-END OF GAME PROCESS STATE
+     2
+     3   0251                           ENDGAM:
+     4   0251    A9    00                       LDA I,0
+     5   0253    8D  0126                       STA HIWAVE
+     6   0256    A6    3E                       LDX NUMPLA
+     7                                                                  ;LOOP FOR EACH PLAYER
+     8                                          BEGIN
+     9   0258    B5    46                       LDA X,WAVEN1
+    10   025A    CD  0126                       CMP HIWAVE
+    11                                                                  ;DETERMINE HIGHEST WAVE REACHED
+    12   025D    90    00                       IFCS
+    13   025F    8D  0126                       STA HIWAVE
+    14   025E    03                             ENDIF
+    15   0262    CA                             DEX
+    16   0263    10    F3                       MIEND
+    17   0265    AC  0126                       LDY HIWAVE
+    18   0268    F0    00                       IFNE
+    19   026A    CE  0126                       DEC HIWAVE
+    20   0269    03                             ENDIF
+    21   026D    A9    14                       LDA I,CDLADR
+    22   026F    24    05                       BIT QSTATUS
+    23   0271    10    00                       IFMI                    ;ATTRACT?
+    24   0273    A9    10                       LDA I,CHISCHK           ;NO. TEST FOR HI SCORE
+    25   0272    02                             ENDIF
+    26   0275    85    00                       STA QSTATE              ;REQUEST HI CHECK OR LADDER DISPLAY
+    27   0277    60                             RTS
+    28
+    29   0278    A5    05               DLADR:  LDA QSTATUS
+    30   027A    29    3F                       AND I,^C<MATRACT!MGTMOD>
+    31                                                          ;PUT INTO ATTRACT
+    32   027C    85    05                       STA QSTATUS             ;REQUEST DISPLAY OF LADDER
+    33   027E    A9    00                       LDA I,0                 ;
+    34   0280    85    3E                       STA NUMPLA              ;RETURN TO PLAYER
+    35   0282    A9    1A                       LDA I,CLOGO
+    36   0284    85    02                       STA QNXTSTA             ;REQUEST NEW GAME AFTER
+    37   0286    A9    0A                       LDA I,CPAUSE            ;A LONG DELAY
+    38   0288    85    00                       STA QSTATE
+    39   028A    A9    A0                       LDA I,0A0
+    40   028C    85    04                       STA QTMPAUS
+    41   028E    A9    01                       LDA I,1                 ;DOUBLE TIME
+    42   0290    8D  016B                       STA PSCALE
+    43   0293    A9    0A                       LDA I,CDHITB
+    44   0295    85    01                       STA QDSTATE
+    45   0297    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 31
+PREP-END OF GAME PROCESS STATE
+
+     1
+     2                                          .SBTTL UTILITY-MASKS
+     3
+     4   0298    80    40    20    10   D70MSK: .BYTE 80,40,20,10,8,4,2,1
+         029C    08    04    02    01
+     5   02A0    01    02    04    08   D07MSK: .BYTE 1,2,4,8,10,20,40,80
+         02A4    10    20    40    80
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 32
+COCKTAIL FLIP
+
+     1                                          .SBTTL  COCKTAIL FLIP
+     2                                                                  ;
+     3                                                                  ;INPUT: COCTAL NOT 0 IF COCKTAIL GAME
+     4                                                                  ;OUTPUT: FLIP BIT SET IF COCKTAIL & PLAYER?
+     5                                                                  ;	OTHERWISE IT IS CLEARED.
+     6   02A8    A0    10               COCFLI: LDY I,MVINVY
+     7   02AA    AD  0117                       LDA COCTAL
+     8   02AD    F0    00                       IFNE                    ;COCKTAIL GAME?
+     9   02AF    A5    3D                       LDA PLAYUP              ;YES.
+    10   02B1    F0    00                       IFNE                    ;PLAYER 2?
+    11   02B3    A9    04                       LDA I,MFLIP             ;YES. FLIP SCREEN.
+    12   02B5    A0    08                       LDY I,MVINVX
+    13   02B2    04                             ENDIF                   ;UNFLIP IF PLAYER 1 OR NOT COCKTAIL
+    14   02AE    08                             ENDIF
+    15   02B7    45    A1                       EOR TNKOUT
+    16   02B9    29    04                       AND I,MFLIP
+    17   02BB    45    A1                       EOR TNKOUT
+    18   02BD    85    A1                       STA TNKOUT              ;SET/CLEAR BIT
+    19   02BF    84    B4                       STY TOUT0
+    20   02C1    60                             RTS
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 35
+SCORE-CLEAR
+
+     1                                          .SBTTL SCORE-CLEAR
+     2
+     3   02C2                           CLRSCO:                         ;CLEAR BOTH SCORES
+     4   02C2    A9    00                       LDA I,0
+     5   02C4    A2    05                       LDX I,5
+     6                                          BEGIN                   ;LOOP FOR L,M & H BYTES OF BOTH SCORES
+     7   02C6    95    40                       STA X,LSCORL
+     8   02C8    CA                             DEX
+     9   02C9    10    FB                       MIEND
+    10   02CB    60                             RTS
+    11
+    12
+    13                                          .SBTTL SCORE-ENEMY POINTS, GENERAL SCORE UPDATE
+    14
+    15                                  ;FUNCTION:	GIVE POINTS FOR ENEMY SHOT DOWN
+    16                                  ;
+    17                                  ;INPUT:	X=INDEX OF PTS TO ADD (IF OUT OF TABLE THEN
+    18                                  ;ADD PTS IN TEMP0,1,&2
+    19
+    20   02CC                           UPSCOR:
+    21   02CC    F8                             SED
+    22   02CD    24    05                       BIT QSTATUS
+    23   02CF    10    00                       IFMI                    ;ATTRACT?
+    24   02D1    A4    3D                       LDY PLAYUP
+    25   02D3    F0    00                       IFNE                    ;NO.
+    26   02D5    A0    03                       LDY I,3                 ;PLAYER 2?
+    27   02D4    02                             ENDIF                   ;YES
+    28   02D7    E0    08                       CPX I,TUPSLE-TUPSCL
+    29   02D9    90    00                       IFCS                    ;BONUS IN TABLE?
+    30   02DB    A5    29                       LDA TEMP0               ;NO. IN TEMPS
+    31   02DD    18                             CLC
+    32   02DE    79  0040                       ADC Y,LSCORL
+    33   02E1    99  0040                       STA Y,LSCORL
+    34   02E4    A5    2A                       LDA TEMP1
+    35   02E6    79  0041                       ADC Y,LSCORM
+    36   02E9    99  0041                       STA Y,LSCORM
+    37   02EC    A5    2B                       LDA TEMP2
+    38   02EE    B8    50    00                 ELSE
+         02DA    16
+    39   02F1    BD  0351'                      LDA AX,TUPSCL           ;ADD IN L,M AND H BYTES FROM
+    40   02F4    18                             CLC                     ;SCORE TABLE TO CORRECT
+    41   02F5    79  0040                       ADC AY,LSCORL           ;PLAYER'S SCORE
+    42   02F8    99  0040                       STA AY,LSCORL
+    43   02FB    BD  0359'                      LDA AX,TUPSCM
+    44   02FE    79  0041                       ADC AY,LSCORM
+    45   0301    99  0041                       STA AY,LSCORM
+    46   0304    A9    00                       LDA I,0
+    47   02F0    15                             ENDIF
+    48   0306    08                             PHP
+    49   0307    79  0042                       ADC AY,LSCORH
+    50   030A    99  0042                       STA AY,LSCORH
+    51   030D    28                             PLP
+    52                                                                  ;GIVE BONUS FOR BIG PTS.
+    53   030E    F0    00                       IFNE                    ;BIG BONUS?
+    54   0310    AE  0156                       LDX BLIFIN              ;YES
+    55   0313    F0    00                       IFNE                    ;BONUS ALLOWED?
+    56   0315    E4    2B                       CPX TEMP2               ;YES.
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 35+
+SCORE-ENEMY POINTS, GENERAL SCORE UPDATE
+
+    57   0317    F0    23                       BEQ GIVBON
+    58   0319    90    21                       BCC GIVBON              ;BONUS >= INTERVAL?
+    59   0314    06                             ENDIF
+    60   030F    0B                             ENDIF
+    61   031B    90    00                       IFCS                    ;PASS 10K BOUNDARY?
+    62   031D    AE  0156                       LDX BLIFIN              ;YES. ET BONUS LIFE INTERVAL (IN 10 K UNITS)
+    63   0320    F0    00                       IFNE                    ;BONUS ALLOWED?
+    64   0322    E0    03                       CPX I,3         ;YES.
+    65   0324    90    00                       IFCS                    ;OVER 20 K INTERVAL?
+    66                                          BEGIN                   ;DIVIDE BY INTERVAL
+    67   0326    38                             SEC
+    68   0327    ED  0156                       SBC BLIFIN
+    69   032A    F0    10                       BEQ GIVBON              ;BRANCH IF NO REMAINDER
+    70   032C    B0    F8                       CCEND                   ;EXIT IF REMAINDER
+    71   032E    B8    50    00                 ELSE
+         0325    0B
+    72   0331    E0    02                       CPX I,2         ;20 K INTERVAL?
+    73   0333    D0    00                       IFEQ
+    74   0335    29    01                       AND I,1         ;YES.
+    75   0337    F0    03                       BEQ GIVBON
+    76   0339    B8    50    00                 ELSE
+         0334    07
+    77   033C                           GIVBON:                         ;10 K INTERVAL
+    78   033C    A6    3D                       LDX PLAYUP              ;YES. GIVE BONUS LIFE
+    79   033E    B5    48                       LDA X,LIVES1
+    80   0340    C9    06                       CMP I,6
+    81   0342    B0    00                       IFCC                    ;MAX AT 6
+    82   0344    F6    48                       INC X,LIVES1
+    83   0346    20  0000G                      JSR SAUSON              ;MAKE BONUS SOUND
+    84   0349    A9    20                       LDA I,20
+    85   034B    8D  0124                       STA BOFLASH             ;REQUEST BONUS LIFE FLASH
+    86   0343    0A                             ENDIF
+    87   033B    12                             ENDIF
+    88   0330    1D                             ENDIF
+    89   0321    2C                             ENDIF
+    90   034E    38                             SEC
+    91   031C    32                             ENDIF
+    92   02D0    7E                             ENDIF
+    93   034F    D8                             CLD
+    94   0350    60                             RTS
+    95   0351    00    50    00    00   TUPSCL: .BYTE  00,50,0,0,50,50,0,50
+         0355    50    50    00    50
+    96   0359                           TUPSLE:
+    97   0359    00    01    02    01   TUPSCM: .BYTE  0,1,02,1,0,2,5,7
+         035D    00    02    05    07
+    98                                          HLL65
+    99         0001'                            .END
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 35+
+SYMBOL TABLE
+
+ACTIP   03AA   		ALLPOT= 60C8   		ALLPO2= 60D8   		AUDCTL= 60C8   		AUDC1 = 60C1
+AUDC2 = 60D1   		AUDF1 = 60C0   		AUDF2 = 60D0   		AUD2CT= 60D8   		BFACTR  0078
+BINSCA  005A   		BLIFIN  0156   		BLUE  = 0006   		BLULET= 0007   		BOFLAS  0124
+BONSCO= ****  G		BONUS   0102   		BOOKKE  0412   		BOOKKS  0406   		BOOMFL  010D
+BOOMTI  010E   		BUFACT  0415   		BUFRDY  0054   		CAMPC   010B   		CAMSTA  010C
+CBOOM = 0024   		CBUF1 = 0078   		CDBOOM= 0004   		CDBOXP= 0012   		CDGETI= 0006
+CDGOVR= 000C   		CDHITB= 000A   		CDLADR= 0014   		CDLOGP= 0014   		CDPLAY= 0000
+CDPLPL= 000E   		CDPRST= 0010   		CDREQR= 0008   		CDROP = 0020   		CDSYST= 0002
+CD2GAM= 0016   		CENDGA= 0008   		CENDLI= 0006   		CENDWA= 000E   		CGETIN= 0012
+CHACHA  00A7   		CHACOU  0135   		CHAINV  00A8   		CHARCO  02F2   		CHARL1  02AD
+CHARL2  02C0   		CHARY   02D3   		CHARYL  02E6   		CHISCH= 0010   		CINIRA= 001C
+CLOGO = 001A   		CLRSCO  02C2 RG		CNEWAV= 000C   		CNEWGA= 0000   		CNEWLI= 0002
+CNEWV2= 0018   		CNOTFO= 0014   		CNWLF2= 001E   		COCFLI  02A8 RG		COCKTA= 0010
+COCTAL  0117   		COLOR   009E   		COLPOR= 0800   		COLRAM  0019   		CPAUSE= 000A
+CPLAY = 0004   		CREQRA= 0016   		CSYSTM= 0022   		CURCOL= 0001   		CURMOD  0106
+CURNTX  006A   		CURNTY  006C   		CURSL1  0200   		CURSL2  0201   		CURSPO  0051
+CURSVH  0105   		CURSVL  0104   		CURSY   0202   		CURSYL  0107   		CURWAV  009F
+DBSW    004C   		DEPCOL= 0006   		DISPLA= ****  G		DLADR   0278 R 		D07MSK  02A0 RG
+D70MSK  0298 RG		EACTL = 6040   		EADAL = 6000   		EAIN  = 6050   		EAUPD = ****  G
+ELICNT  0123   		EMCTRS= 0003   		ENDGAM  0251 R 		ENDLIF  020F R 		ENDWAV  01EC R
+ENSIZE  0151   		ESHCOU  00A6   		EXICAM  010A   		EXL     005E   		EXPCOL= 0000
+EXPCOU  0116   		EXPLOL  02FA   		EXPLOS  0312   		EXPLOT  0302   		EXPLOY  030A
+EXSTAT  001D R 		EYEFAC  0065   		EYH     005B   		EYL     005F   		EYLDES  005D
+EYLL    005C   		EZL     0060   		FARY    014E   		FBLUE = 000B   		FGREEN= 0007
+FLASH = 000F   		FLGNHI  0603   		FLICOL= 0003   		FLIPCO  0142   		FRED  = 000C
+FRTIMR  0053   		FUSECO  0146   		GAMOP1  071E   		GAMOP3  071F   		GETINI= ****  G
+GIVBON  033C R 		GREEN = 0005   		HARDWA= 6000   		HIRATE  0127   		HISCHK= ****  G
+HIWAVE  0126   		HRANKH= 0620   		HRANKL  061E   		HRANKM= 061F   		HRED  = 000D
+HSCORH= 0708   		HSCORL= 0706   		HSCORM= 0707   		ICHCOL= 0000   		ILINDD= 00F0
+ILINLI= 0010   		INCCOU  0109   		INDEX1  0037   		INDEX2  0038   		INDEX3  0039
+INDEX4  003A   		INDYHI  003C   		INDYLO  003B   		INEWAV= ****  G		INEWLI= ****  G
+INICHK= ****  G		INIDSP= ****  G		ININDX  0604   		INIRAT= ****  G		INIRA0= ****  G
+INISOU= ****  G		INITAL  0606   		INMCOU  0108   		INOP0 = 0D00   		INOP1 = 0E00
+INPUT   004A   		INTACK= 5000   		INTENS  0098   		INTIME  0128   		INVABI= 0007
+INVACT  02A6   		INVAC1  0283   		INVAC2  028A   		INVAL1  02B9   		INVAL2  02CC
+INVAY   02DF   		INVAYL  029F   		INVCAM  0291   		INVCAR= 0003   		INVCOL= 0003
+INVDIR= 0080   		INVFIR= 0040   		INVLOO  0298   		INVMOT= 0080   		INVROT= 0040
+INVSEQ= 0018   		IN1   = 0C00   		LEDOFF= 0003   		LEFSID  007B   		LETCOL= 0005
+LEVELY  010F   		LIFSXH  035A   		LIFSXL  036A   		LIFSZH  037A   		LIFSZL  038A
+LINANG  03EE   		LINEX   03CE   		LINEXM  0435   		LINEY   03AC   		LINEZ   03DE
+LINEZM  0445   		LINSCA  0059   		LINSTA  039A   		LINSXH  031A   		LINSXL  032A
+LINSZH  033A   		LINSZL  034A   		LITRAL  00AC   		LIVES1  0048   		LIVES2  0049
+LOGINI= ****  G		LSCORH  0042   		LSCORL  0040   		LSCORM  0041   		LVSGAM  0158
+MAH   = 6081   		MAINLN  0000 RG		MAL   = 6080   		MATRAC= 0080   		MBH   = 6083
+MBL   = 6082   		MBSTAR= 6080   		MCOINC= 0002   		MCOINL= 0004   		MCOINR= 0001
+MDITES= 0020   		MDYPL = 6098   		MECHS = 0003   		MEH   = 6085   		MEL   = 6084
+MFAKE = 0080   		MFH   = 6087   		MFIRE = 0010   		MFL   = 6086   		MFLIP = 0004
+MGTMOD= 0040   		MHALT = 0040   		MLCCNT= 0004   		MLED1 = 0002   		MLED2 = 0001
+MMCCNT= 0002   		MNL   = 608C   		MOPTI4= 0020   		MOPT13= 0007   		MOVCUR= ****  G
+MRCCNT= 0001   		MSTAT = 6040   		MSTRT1= 0020   		MSTRT2= 0040   		MSUZA = 0008
+MSZXD = 6094   		MTEMP   0031   		MTEST = 0010   		MVINVX= 0008   		MVINVY= 0010
+MXH   = 6089   		MXL   = 6088   		MXPH  = 6096   		MXPL  = 6095   		MYHIGH= 6070
+MYLOW = 6060   		MZHH  = 6090   		MZHL  = 608F   		MZLH  = 608E   		MZLL  = 608D
+M3KHTI= 0080   		NCHARG= 000C   		NEARY   014D   		NEOFLI  014F   		NEWAIT  00A3
+NEWAV2= ****  G		NEWGAM  016C R 		NEWLF2  01DB R 		NEWLIF  01A0 R 		NEWPLA  003F
+NEXPLO= 0008   		NGAMES  0100   		NGAME0  040E   		NGAMIH  040D   		NGAMIL  040C
+NGAM2H  0410   		NGAM2L  040F   		NGAM20  0411   		NGAVGH  0413   		NGAVGL  0412
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 35+
+SYMBOL TABLE
+
+NGAVGZ  0414   		NHISCO= 0008   		NICHAR= 0004   		NINVAD= 0007   		NLINES= 0010
+NNYMPH= 0040   		NONSTA  00F1 R 		NOOPR   0039 R 		NOSTAR  0139 R 		NPARTI= 0010
+NPCHAR= 0008   		NPLANE= 0008   		NPLAYR  0101   		NRANKS= 0063   		NROMS = 000C
+NUMPLA  003E   		NWNYMC  015B   		NWTELI  015A   		NYMCOL= 000C   		NYMCOU  03AB
+NYMPL   0203   		NYMPY   0243   		OBJIND  0055   		OCURSL  00A5   		OFRTIM  00A4
+OLDLHI  00AB   		OLDLLO  00AA   		OLOFLI  0150   		OM2GAM= 0001   		OPFLIP  013D
+OPFUSE  0141   		OPPULS  013E   		OPSPIN  0140   		OPTANK  013F   		OPTIN1  0009
+OPTIN2  000A   		OPTIN3  016A   		OTB     0052   		OUTANK= 60E0   		OUT0  = 4000
+PARLIX  0203   		PARLIY  0223   		PARLIZ  0243   		PARLXA= 0020   		PARLXV  02C3
+PARLYA= 0020   		PARLYV  02E3   		PARLZA= 0020   		PARLZV  0303   		PARTIX  0263
+PARTIY  0283   		PARTIZ  02A3   		PARTXA= 0000   		PARTXV  0323   		PARTYA= 0000
+PARTYV  0343   		PARTZA= 0000   		PARTZV  0363   		PAUSE   0060 R 		PCHCOL= 0001
+PCVELO= 0009   		PDIRED= 000B   		PDIWHI= 0009   		PDIYEL= 000A   		PLAGRO  0115
+PLANEY  03FE   		PLAY  = ****  G		PLAYUP  003D   		PLDROP= ****  G		POKEY = 60C0
+POKEY2= 60D0   		POTGO = 60CB   		POTGO2= 60DB   		PRBOOM= ****  G		PROCRE  007B R
+PROG  = 9000   		PRORAT= ****  G		PRSTAR= ****  G		PSCALE  016B   		PSHCTR= 0008
+PUCHDE  00B2   		PULPOT  0157   		PULSCO  0143   		PULSON  0148   		PULTIM  0147
+PULVEL= FEA0   		PURPLE= 0002   		PXL     0056   		PYL     0057   		PZL     0058
+QDSTAT  0001   		QFRAME  0003   		QNXTST  0002   		QSTATE  0000   		QSTATU  0005
+QTMPAU  0004   		QT1     00B5   		QT2     016C   		QT3     0455   		QT4     0720
+QT5     011F   		QT6     011B   		QUASEC= 0005   		RANDOM= 60CA   		RANDO2= 60DA
+RANKS   0600   		RED   = 0003   		RESET = ****  G		RITSID  007C   		ROMSTA= 3000
+ROTDIS  0114   		ROTFLG  0113   		ROUTAD  003A R 		ROUTEN  0060 R 		RSCORH  0045
+RSCORL  0043   		RSCORM  0044   		RUNGVG  00B0   		SAUSON= ****  G		SAVEND  03CE
+SAVEP   03BC   		SAVEX   0035   		SAVEY   0036   		SCFL    0079   		SECOND= 0014
+SECOPH  040B   		SECOPL  0409   		SECOPM  040A   		SECOUH  0408   		SECOUL  0406
+SECOUM  0407   		SECUVG  00B6   		SECUVY  016E   		SKCTL = 60CF   		SKCTL2= 60DF
+SPACG = 0000   		SPARE3  0133   		SPBINA  013A   		SPFTIM  013C   		SPINCO  0145
+SPLINE  0139   		SPOKST  0425   		SPXIND  013B   		SSLAMS= ****  G		SUBCOU  0099
+SUZCNT  03AA   		SUZTIM  0125   		SVGLIS  0076   		SWAPEN= ****  G		SWFINA  004E
+SWRELE  004F   		SWSTAT  004D   		SWSTRT  004D   		SXH     0062   		SXL     0061
+SYM   = 6092   		SYSTEM= ****  G		SZH     0064   		SZL     0063   		S1    = 02CF R
+S2    = 031B R 		S3    = 0320 R 		S4    = 032F R 		S5    = 033A R 		S6    = 0342 R
+TANCOL= 0002   		TANKCO  0144   		TBHD    0050   		TBLIND  0602   		TCMFLG  00A2
+TEMPL   002A   		TEMPX   002E   		TEMPY   002F   		TEMPZ   0030   		TEMP0   0029
+TEMP1   002A   		TEMP2   002B   		TEMP3   002C   		TEMP4   002D   		TIMHIS  0605
+TNKOUT  00A1   		TOUT0   00B4   		TRACOL= 0005   		TSLAMR  000B   		TUPSCL  0351 R
+TUPSCM  0359 R 		TUPSLE  0359 R 		TURQOI= 0004   		TYPCOD  015E   		UNITXH  009B
+UNITXL  009A   		UNITZH  009D   		UNITZL  009C   		UPSCOR  02CC RG		VECRAM= 2000
+VGBRIT  0073   		VGLIST  0074   		VGSIZE  0072   		VGSTAR= 4800   		VGSTOP= 5800
+VGY     00A9   		WAVEN1  0046   		WAVEN2  0047   		WCHAMX  011A   		WCHARF  0119
+WCHARI  0118   		WCHARL  0120   		WELCOL= 0006   		WELLID  0112   		WELTYP  0111
+WFLICA  015D   		WFLMAX  012E   		WFLMIN  0129   		WFUFRQ  015F   		WFUMAX  0132
+WFUMIN  012D   		WFUSCH  0159   		WFUSIH= 0169   		WFUSIL= 0164   		WHITE = 0000
+WINVIL  0160   		WINVIN  0165   		WINVJM  011D   		WINVMX  011C   		WNYMMX  011E
+WPULCA  015C   		WPULFI  016D   		WPUMAX  012F   		WPUMIN  012A   		WSPMAX  0131
+WSPMIN  012C   		WTACAR  0149   		WTAMAX  0130   		WTAMIN  012B   		WTCHDG= 5000
+WTFMAX  0136   		WTTFRA  00B3   		XADJL   0066   		XCOMP   006E   		X0H     0080
+X0L     0078   		X1H     0081   		X1L     0079   		X2H     0082   		X2L     007A
+X3H     0083   		X3L     007B   		X4H     0084   		X4L     007C   		X5H     0085
+X5L     007D   		X6H     0086   		X6L     007E   		X7H     0087   		X7L     007F
+YCOMP = 0070   		YDEUNI  00A0   		YELLOW= 0001   		ZABFLI= 0000   		ZABFUS= 0004
+ZABPUL= 0001   		ZABTAN= 0002   		ZABTRA= 0003   		ZADEST  0121   		ZADJL   0068
+ZAPCOL= 0000   		ZBLACK= 000F   		ZBLUE = 000B   		ZCARFL= 0001   		ZCARFU= 0003
+ZCARNO= 0000   		ZCARPU= 0002   		ZDIRDO= 0080   		ZDIRUP= 0000   		ZFIRNO= 0000
+ZFIRYE= 0040   		ZGREEN= 0007   		ZMOTJM= 0080   		ZMOTMO= 0000   		ZPNLOC  00AE
+ZPOFFS  00AF   		ZPURPL= 0008   		ZQAT4C  0155 R 		ZRED  = 000C   		ZROCCW= 0040
+ALEXEC - ALIENS EXECUTIVE	ATARI MAC65 VM03.09  00:00:20 PAGE 35+
+SYMBOL TABLE
+
+ZROTCW= 0000   		ZTURQO= 0003   		ZWHITE= 0000   		ZYELLO= 0004   		Z0H     0090
+Z0L     0088   		Z1H     0091   		Z1L     0089   		Z2H     0092   		Z2L     008A
+Z3H     0093   		Z3L     008B   		Z4H     0094   		Z4L     008C   		Z5H     0095
+Z5L     008D   		Z6H     0096   		Z6L     008E   		Z7H     0097   		Z7L     008F
+$BC     0018   		$BCCNT  0016   		$CCTIM  0013   		$CMODE  0009   		$CNCT   0017
+$CNSTT  000D   		$COINA  0008   		$INTCT  0007   		$LAM    0008   		$LMBIT= 0008
+$LMTIM  000C   		$PSTSL  0010   		$TEST   0008   		$$CRDT  0006   		.Z.   = 0005
+...RD = 0010   		...T  = 034F R 		...X  = 0000
+. ABS.	0721	  00
+      	0361	  01
+ERRORS DETECTED: 0
+FREE CORE: 12747. WORDS
+
+OBJ:ALEXEC,OBJ:ALEXEC.LST=ALEXEC
+
+(OBJ:ALEXEC.OBJ,OBJ:ALEXEC.LST=DK1:ALEXEC)
+
+A TOTAL OF 3,445 STATEMENTS WERE PROCESSED.
+
+CPU TIME -  00:00:00.1     I/O TIME -  00:00:00.0
+
+                                                                                                                                                                                                                                                                                                                                                                                                                            
