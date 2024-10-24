@@ -7,6 +7,8 @@
 * [Let's Build](#lets-build)
 * [Let's Link](#lets-link)
 * [Getting Files off the PDP-11 and Onto Our Local Machine](#getting-files-off-the-pdp-11-and-onto-our-local-machine)
+  * [The Dirty Way](#the-dirty-way)
+  * [The Tedious Way](#the-tedious-way)
 * [About Our Emulated Build Environment](#about-our-emulated-build-environment)
   * [The Files in this Directory](#the-files-in-this-directory)
   * [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05)
@@ -46,27 +48,81 @@ cont
 ## Let's Build
 
 `OBJ` and `BIN` are used as nicknames in our build commands for the locations of the object files
-and final linked binary. We're going to write them to the main disk which has the name `RK`. So let's 
+and final linked binary. We're going to write them to the tempest disk which has the name `RK1`. So let's 
 assign these nicknames accordingly:
 ```
-ASS RK OBJ
-ASS RK BIN
+ASS RK1 OBJ
+ASS RK1 BIN
 ```
+
+To actually view the sources on our tempest disk we have to do:
+
+```
+DIR DK1:
+```
+
+I'm not totally clear why we use `DK1` and `RK1` interchangeably this way. But here are the files on our
+tempest disk (tempest_original.rk05) anyway.
+```
+.DIR DK1:
+
+ALVGUT.MAC    19                 ALCOIN.MAC     1
+STATE2.MAP     1                 MBUCOD.V05    32
+002X2 .DAT     1                 MBOX  .SAV    19
+ALEXEC.LDA    77                 HLL65 .MAC     4
+ALHARD.MAC     7                 ALSOUN.MAC    17
+ALWELG.MAC   129                 TEMPST.DOC    16
+ALHAR2.MAC     7                 ALDISP.MAC   111
+MBUDOC.DOC    34                 ALSCO2.MAC    50
+ALDIS2.MAC   111                 ALSCOR.MAC    50
+ALCOMN.MAC    52                 ALVROM.MAC    77
+ALLANG.MAC    14                 STATE2.COM     1
+ALEXEC.MAP    12                 ALTES2.MAC    34
+ALEARO.MAC    12                 VGMC  .MAC     8
+STATE2.MAC     2                 ANVGAN.MAC    12
+ALEXEC.COM     2                 ALEXEC.MAC    24
+TEMPST.LDA    77                 MABOX .DAT     1
+002X1 .DAT     1                 MBUCOD.MAP     2
+MBUCOD.COM     1                 STATE2.SAV     1
+ALDIAG.MAC     6                 COIN65.MAC    47
+ALTEST.MAC    32                 ASCVG .MAC     2
+ 40 Files, 1106 Blocks
+  400 Free blocks
+```
+
+(See [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05) for how we created
+this disk with the sources on it.)
 
 Now we can run the `MAC65` macro assembler to assemble each of the source files.
 
 ```
 R MAC65
+OBJ:ALWELG,OBJ:ALWELG.LST=ALWELG
+OBJ:ALSCOR,OBJ:ALSCOR.LST=ALSCOR
+OBJ:ALDISP,OBJ:ALDISP.LST=ALDISP
+OBJ:ALEXEC,OBJ:ALEXEC.LST=ALEXEC
+OBJ:ALSOUN,OBJ:ALSOUN.LST=ALSOUN
+OBJ:ALVROM,OBJ:ALVROM.LST=ALVROM
+OBJ:ALCOIN,OBJ:ALCOIN.LST=ALCOIN
+OBJ:ALLANG,OBJ:ALLANG.LST=ALLANG
+OBJ:ALHARD,OBJ:ALHARD.LST=ALHARD
+OBJ:ALTEST,OBJ:ALTEST.LST=ALTEST
+OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
+OBJ:ALVGUT,OBJ:ALVGUT.LST=ALVGUT
+```
+
+```
+R MAC65
 OBJ:ALWELG=ALWELG
-OBJ:ALSCOR=ALSCOR
-OBJ:ALDISP=ALDISP
+OBJ:ALSCOR=ALSCO2
+OBJ:ALDISP=ALDIS2
 OBJ:ALEXEC=ALEXEC
 OBJ:ALSOUN=ALSOUN
 OBJ:ALVROM=ALVROM
 OBJ:ALCOIN=ALCOIN
 OBJ:ALLANG=ALLANG
-OBJ:ALHARD=ALHARD
-OBJ:ALTEST=ALTEST
+OBJ:ALHARD=ALHAR2
+OBJ:ALTEST=ALTES2
 OBJ:ALEARO=ALEARO
 OBJ:ALVGUT=ALVGUT
 ```
@@ -122,23 +178,42 @@ FREE CORE: 12314. WORDS
 We can view the assembled files with a `DIR` command:
 
 ```
-DIR
+DIR DK1:
 ```
 
-This shows us everything on the main system drive but you'll notice our object files at the very end of
+This shows us everything on the tempest disk but you'll notice our object files at the very end of
 the listing:
 ```
-ALEXEC.SAV   112                 ALEARO.OBJ     3
-ALVGUT.OBJ     2                 ALWELG.OBJ    40
-ALSCOR.OBJ    18                 ALDISP.OBJ    32
-ALEXEC.OBJ     8                 ALSOUN.OBJ     4
-ALVROM.OBJ    13                 ALCOIN.OBJ     2
-ALLANG.OBJ    12                 ALHARD.OBJ     3
-ALTEST.OBJ    11                 ALSCO2.OBJ    18
-ALDIS2.OBJ    32                 ALHAR2.OBJ     3
-ALTES2.OBJ    11                 ALEXEC.XX     10
- 174 Files, 3650 Blocks
-  1112 Free blocks
+.DIR DK1:
+
+ALVGUT.MAC    19                 ALCOIN.MAC     1
+STATE2.MAP     1                 MBUCOD.V05    32
+002X2 .DAT     1                 MBOX  .SAV    19
+ALEXEC.LDA    77                 HLL65 .MAC     4
+ALHARD.MAC     7                 ALSOUN.MAC    17
+ALWELG.MAC   129                 TEMPST.DOC    16
+ALHAR2.MAC     7                 ALDISP.MAC   111
+MBUDOC.DOC    34                 ALSCO2.MAC    50
+ALDIS2.MAC   111                 ALSCOR.MAC    50
+ALCOMN.MAC    52                 ALVROM.MAC    77
+ALLANG.MAC    14                 STATE2.COM     1
+ALEXEC.MAP    12                 ALTES2.MAC    34
+ALEARO.MAC    12                 VGMC  .MAC     8
+STATE2.MAC     2                 ANVGAN.MAC    12
+ALEXEC.COM     2                 ALEXEC.MAC    24
+TEMPST.LDA    77                 MABOX .DAT     1
+002X1 .DAT     1                 MBUCOD.MAP     2
+MBUCOD.COM     1                 STATE2.SAV     1
+ALDIAG.MAC     6                 COIN65.MAC    47
+ALTEST.MAC    32                 ASCVG .MAC     2
+ALWELG.OBJ    40                 ALSCOR.OBJ    18
+ALDISP.OBJ    32                 ALEXEC.OBJ     8
+ALSOUN.OBJ     4                 ALVROM.OBJ    13
+ALCOIN.OBJ     2                 ALLANG.OBJ    12
+ALHARD.OBJ     3                 ALTEST.OBJ    11
+ 50 Files, 1249 Blocks
+  57 Free blocks
+
 ```
 
 ## Let's Link
@@ -182,7 +257,46 @@ ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53
 BIN:ALEXEC.SAV 
 ```
 
+That said, we still get an `ALEXEC.SAV` file and a mapping file (check the bottom of the listing below):
+```
+.DIR DK1:
+
+ALVGUT.MAC    19                 ALCOIN.MAC     1
+STATE2.MAP     1                 MBUCOD.V05    32
+002X2 .DAT     1                 MBOX  .SAV    19
+ALEXEC.LDA    77                 HLL65 .MAC     4
+ALHARD.MAC     7                 ALSOUN.MAC    17
+ALWELG.MAC   129                 TEMPST.DOC    16
+ALHAR2.MAC     7                 ALDISP.MAC   111
+MBUDOC.DOC    34                 ALSCO2.MAC    50
+ALDIS2.MAC   111                 ALSCOR.MAC    50
+ALCOMN.MAC    52                 ALVROM.MAC    77
+ALLANG.MAC    14                 STATE2.COM     1
+ALEXEC.MAP    12                 ALTES2.MAC    34
+ALEARO.MAC    12                 VGMC  .MAC     8
+STATE2.MAC     2                 ANVGAN.MAC    12
+ALEXEC.COM     2                 ALEXEC.MAC    24
+TEMPST.LDA    77                 MABOX .DAT     1
+002X1 .DAT     1                 MBUCOD.MAP     2
+MBUCOD.COM     1                 STATE2.SAV     1
+ALDIAG.MAC     6                 COIN65.MAC    47
+ALTEST.MAC    32                 ASCVG .MAC     2
+ALWELG.OBJ    40                 ALSCOR.OBJ    18
+ALDISP.OBJ    32                 ALEXEC.OBJ     8
+ALSOUN.OBJ     4                 ALVROM.OBJ    13
+ALCOIN.OBJ     2                 ALLANG.OBJ    12
+ALHARD.OBJ     3                 ALTEST.OBJ    11
+ALEXEC.XX     10                 ALEXEC.SAV   112
+ 52 Files, 1371 Blocks
+  135 Free blocks
+```
+
 ## Getting Files off the PDP-11 and Onto Our Local Machine
+### The Dirty Way
+We have a bunch of object files on our `tempest_original.rk05` disk now. We can parse the contents of this
+file on our local machine to extract the goodies.
+
+### The Tedious Way
 This is tedious unfortunately. To get a single file off the PDP11 we do the following.
 
 Press Ctrl-E to suspend the emulation. Now we set up the `ptp` (print device) to point to a
