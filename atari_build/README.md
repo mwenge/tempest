@@ -5,6 +5,7 @@
 * [Prerequisites](#prerequisites)
 * [Starting the Build Environment](#starting-the-build-environment)
 * [Let's Build](#lets-build)
+  * [Building Tempest Version 2A(alt)](#building-tempest-version-2aalt)
 * [Let's Link](#lets-link)
 * [Getting Files off the PDP-11 and Onto Our Local Machine](#getting-files-off-the-pdp-11-and-onto-our-local-machine)
   * [The Dirty Way](#the-dirty-way)
@@ -13,6 +14,7 @@
   * [The Files in this Directory](#the-files-in-this-directory)
   * [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05)
 * [Sidenote: Viewing A Floppy Disk](#sidenote-viewing-a-floppy-disk)
+* [Sidenote: Building with Listings](#sidenote-building-with-listings)
 * [Acknowledgments](#acknowledgments)
 
 <!-- vim-markdown-toc -->
@@ -93,62 +95,52 @@ ALTEST.MAC    32                 ASCVG .MAC     2
 (See [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05) for how we created
 this disk with the sources on it.)
 
-Now we can run the `MAC65` macro assembler to assemble each of the source files.
+### Building Tempest Version 2A(alt)
 
-```
-R MAC65
-OBJ:ALWELG,OBJ:ALWELG.LST=ALWELG
-OBJ:ALSCOR,OBJ:ALSCOR.LST=ALSCOR
-OBJ:ALDISP,OBJ:ALDISP.LST=ALDISP
-OBJ:ALEXEC,OBJ:ALEXEC.LST=ALEXEC
-OBJ:ALSOUN,OBJ:ALSOUN.LST=ALSOUN
-OBJ:ALVROM,OBJ:ALVROM.LST=ALVROM
-OBJ:ALCOIN,OBJ:ALCOIN.LST=ALCOIN
-OBJ:ALLANG,OBJ:ALLANG.LST=ALLANG
-OBJ:ALHARD,OBJ:ALHARD.LST=ALHARD
-OBJ:ALTEST,OBJ:ALTEST.LST=ALTEST
-OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
-OBJ:ALVGUT,OBJ:ALVGUT.LST=ALVGUT
-```
+Now we can run the `MAC65` macro assembler to assemble each of the source files. Trying to assemble all the files in one
+run does not seem to work in practice (some files get ignored), so we split the process in two below.
 
 ```
 R MAC65
 OBJ:ALWELG=ALWELG
-OBJ:ALSCOR=ALSCO2
-OBJ:ALDISP=ALDIS2
+OBJ:ALSCO2=ALSCO2
+OBJ:ALDIS2=ALDIS2
 OBJ:ALEXEC=ALEXEC
 OBJ:ALSOUN=ALSOUN
 OBJ:ALVROM=ALVROM
-OBJ:ALCOIN=ALCOIN
-OBJ:ALLANG=ALLANG
-OBJ:ALHARD=ALHAR2
-OBJ:ALTEST=ALTES2
-OBJ:ALEARO=ALEARO
-OBJ:ALVGUT=ALVGUT
+
 ```
 
-Below is the output of our command. The files are successfully assembled. Note that we have to press Ctrl-C
-at the very end to 'close' the assembler. Don't worry about the slightly disordered nature of the output. The
-results have been interleaved, but as long as no errors are reported each object file has been assembled as expected.
+To run the second batch press `Ctrl-C` to 'close' the assembler first, then paste:
+
+```
+R MAC65
+OBJ:ALCOIN=ALCOIN
+OBJ:ALLANG=ALLANG
+OBJ:ALHAR2=ALHAR2
+OBJ:ALTES2=ALTES2
+OBJ:ALEARO=ALEARO
+OBJ:ALVGUT=ALVGUT
+
+```
+
+Below is the output of our build commands. The files are successfully assembled. Note that we have to press Ctrl-C
+at the very end to 'close' the assembler.
 ```
 .R MAC65
 *OBJ:ALWELG=ALWELG
-OBJ:ALSCOR=ALSCOR
-OBJ:ALDISP=ALDISP
+OBJ:ALSCO2=ALSCO2
+OBJ:ALDIS2=ALDIS2
 OBJ:ALEXEC=ALEXEC
 OBJ:ALSOUN=ALSOUN
 OBJ:ALVROM=ALVROM
-OBJ:ALCOINERRORS DETECTED: 0
+ERRORS DETECTED: 0
 FREE CORE: 11479. WORDS
 
-*=ALCOIN
-OBJ:ALLANG=ALLANG
-OBJ:ALHARD=ALHERRORS DETECTED: 0
-FREE CORE: 12483. WORDS
+*ERRORS DETECTED: 0
+FREE CORE: 12479. WORDS
 
-*ARD
-OBJ:ALTEST=ALTEST
-ERRORS DETECTED: 0
+*ERRORS DETECTED: 0
 FREE CORE: 11890. WORDS
 
 *ERRORS DETECTED: 0
@@ -160,59 +152,68 @@ FREE CORE: 12597. WORDS
 *ERRORS DETECTED: 0
 FREE CORE: 12599. WORDS
 
-*ERRORS DETECTED: 0
+```
+```
+.R MAC65
+*OBJ:ALCOIN=ALCOIN
+OBJ:ALLANG=ALLANG
+OBJ:ERRORS DETECTED: 0
 FREE CORE: 11118. WORDS
 
-*ERRORS DETECTED: 0
+*ALHAR2=ALHAR2
+OBJ:ALTES2=ALTES2
+OBJ:ALEARO=ALEARO
+OBJ:ALVGUT=ALVGUT
+ERRORS DETECTED: 0
 FREE CORE: 11892. WORDS
 
 *ERRORS DETECTED: 0
 FREE CORE: 13186. WORDS
 
 *ERRORS DETECTED: 0
-FREE CORE: 12314. WORDS
+FREE CORE: 12298. WORDS
 
-*^C
+*ERRORS DETECTED: 0
+FREE CORE: 13010. WORDS
+
+*ERRORS DETECTED: 0
+FREE CORE: 13178. WORDS
+
 ```
 
 We can view the assembled files with a `DIR` command:
 
 ```
-DIR DK1:
+DIR OBJ:
 ```
 
 This shows us everything on the tempest disk but you'll notice our object files at the very end of
 the listing:
 ```
-.DIR DK1:
+.DIR OBJ:
 
 ALVGUT.MAC    19                 ALCOIN.MAC     1
-STATE2.MAP     1                 MBUCOD.V05    32
-002X2 .DAT     1                 MBOX  .SAV    19
-ALEXEC.LDA    77                 HLL65 .MAC     4
-ALHARD.MAC     7                 ALSOUN.MAC    17
-ALWELG.MAC   129                 TEMPST.DOC    16
+HLL65 .MAC     4                 ALHARD.MAC     7
+ALSOUN.MAC    17                 ALWELG.MAC   129
 ALHAR2.MAC     7                 ALDISP.MAC   111
-MBUDOC.DOC    34                 ALSCO2.MAC    50
-ALDIS2.MAC   111                 ALSCOR.MAC    50
-ALCOMN.MAC    52                 ALVROM.MAC    77
-ALLANG.MAC    14                 STATE2.COM     1
-ALEXEC.MAP    12                 ALTES2.MAC    34
-ALEARO.MAC    12                 VGMC  .MAC     8
-STATE2.MAC     2                 ANVGAN.MAC    12
-ALEXEC.COM     2                 ALEXEC.MAC    24
-TEMPST.LDA    77                 MABOX .DAT     1
-002X1 .DAT     1                 MBUCOD.MAP     2
-MBUCOD.COM     1                 STATE2.SAV     1
+ALSCO2.MAC    50                 ALDIS2.MAC   111
+ALSCOR.MAC    50                 ALCOMN.MAC    52
+ALVROM.MAC    77                 ALLANG.MAC    14
+ALTES2.MAC    34                 ALEARO.MAC    12
+VGMC  .MAC     8                 STATE2.MAC     2
+ANVGAN.MAC    12                 ALEXEC.MAC    24
 ALDIAG.MAC     6                 COIN65.MAC    47
 ALTEST.MAC    32                 ASCVG .MAC     2
-ALWELG.OBJ    40                 ALSCOR.OBJ    18
-ALDISP.OBJ    32                 ALEXEC.OBJ     8
-ALSOUN.OBJ     4                 ALVROM.OBJ    13
-ALCOIN.OBJ     2                 ALLANG.OBJ    12
-ALHARD.OBJ     3                 ALTEST.OBJ    11
- 50 Files, 1249 Blocks
-  57 Free blocks
+ALEXEC.LDA    77                 ALWELG.OBJ    40
+ALSCO2.OBJ    18                 ALDIS2.OBJ    32
+ALEXEC.OBJ     8                 ALSOUN.OBJ     4
+ALVROM.OBJ    13                 ALCOIN.OBJ     2
+ALLANG.OBJ    12                 ALHAR2.OBJ     3
+ALTES2.OBJ    11                 ALEARO.OBJ     3
+ALVGUT.OBJ     2                 ALEXEC.LST   108
+ALEXEC.MAP    10
+ 47 Files, 3126 Blocks
+  2902 Free blocks
 
 ```
 
@@ -223,12 +224,16 @@ is called linking and the Atari tool du-jour was `LINKM`.
 The command to link our object files is:
 ```
 R LINKM
-BIN:ALEXEC,ALEXEC.XX=OBJ:ALWELG,ALSCOR,ALDISP,ALEXEC,ALSOUN,ALVROM/C
-ALCOIN,ALLANG,ALHARD,ALTEST,ALEARO,ALVGUT
+BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 ```
+
 
 Unfortunately this does not work:
 ```
+.R LINKM
+*BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+*ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 MULT DEF OF VGBRIT IN MODULE:  000C
 MULT DEF OF VGLIST IN MODULE:  000C
 MULT DEF OF XCOMP  IN MODULE:  000C
@@ -247,8 +252,26 @@ BYTE RELOCATION ERROR AT C180
 BYTE RELOCATION ERROR AT C185
 BYTE RELOCATION ERROR AT C727
 BYTE RELOCATION ERROR AT D827
-BYTE RELOCATION ERROR AT DCC7
+BYTE RELOCATION ERROR AT DCB5
 ```
+
+The problem is that the version of the MAC65 assembler we have (VM 03.09) has not correctly interpreted lines like the following:
+```
+    63   0034    85    02G                      STA SCLEVEL+2
+```
+What we actually want it to assemble is something like this:
+```
+    63   0034    8D  0002G                      STA SCLEVEL+2
+```
+
+That is, we need it to recognize that `SCLEVEL` is a global value that is two bytes long and so requires the `8D` opcode
+for the `STA' operation rather than the `85` opcode, which is `STA' for a single-byte value.
+
+It recognises it correctly in the previous line:
+```
+    62   0031    8D  0000G                      STA SCLEVEL
+```
+What has thrown it off in our case is the offset of `+2`.
 
 The `LINKM` version on our disk is 'V04-06'. According to the map file that came with our sources the
 version actually used to build Tempest was 'V05.00':
@@ -256,45 +279,43 @@ version actually used to build Tempest was 'V05.00':
 ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53 
 BIN:ALEXEC.SAV 
 ```
+So we likely have the 'wrong' version of both assembler and linker.
 
-That said, we still get an `ALEXEC.SAV` file and a mapping file (check the bottom of the listing below):
+Now, we could try patching the assembler and linker but that would take ages. Instead what we can do is fix up all instances of this issue in the
+original source. For example to fix `SCLEVEL+2` we can do the following:
+
+```diff
+--- a/ALSCO2.MAC
++++ b/ALSCO2.MAC
+@@ -31,7 +31,8 @@
+ 	.GLOBL MBOLIFE,MSPIKE,MAPROA,MSUPZA
+ 	.GLOBL VGSTAT,EABAD
+ 	.GLOBL HISLOC,SCALOC,LIVLOC,SCOLOC
+-	.GLOBL SCECOU,SCORES,HIILOC,LSYMB0,SCOBUF,SCLEVEL,VORBOX
++	.GLOBL SCECOU,SCORES,HIILOC,LSYMB0,SCOBUF,SCLEVEL,VORBOX,SCLVL2
+@@ -70,7 +71,7 @@ INFO:
+ 	JSR VGCNTR
+ 	LDA VGMSGA		;BLANK OUT LEVEL
+ 	STA SCLEVEL
+-	STA SCLEVEL+2
++	STA SCLVL2
 ```
-.DIR DK1:
 
-ALVGUT.MAC    19                 ALCOIN.MAC     1
-STATE2.MAP     1                 MBUCOD.V05    32
-002X2 .DAT     1                 MBOX  .SAV    19
-ALEXEC.LDA    77                 HLL65 .MAC     4
-ALHARD.MAC     7                 ALSOUN.MAC    17
-ALWELG.MAC   129                 TEMPST.DOC    16
-ALHAR2.MAC     7                 ALDISP.MAC   111
-MBUDOC.DOC    34                 ALSCO2.MAC    50
-ALDIS2.MAC   111                 ALSCOR.MAC    50
-ALCOMN.MAC    52                 ALVROM.MAC    77
-ALLANG.MAC    14                 STATE2.COM     1
-ALEXEC.MAP    12                 ALTES2.MAC    34
-ALEARO.MAC    12                 VGMC  .MAC     8
-STATE2.MAC     2                 ANVGAN.MAC    12
-ALEXEC.COM     2                 ALEXEC.MAC    24
-TEMPST.LDA    77                 MABOX .DAT     1
-002X1 .DAT     1                 MBUCOD.MAP     2
-MBUCOD.COM     1                 STATE2.SAV     1
-ALDIAG.MAC     6                 COIN65.MAC    47
-ALTEST.MAC    32                 ASCVG .MAC     2
-ALWELG.OBJ    40                 ALSCOR.OBJ    18
-ALDISP.OBJ    32                 ALEXEC.OBJ     8
-ALSOUN.OBJ     4                 ALVROM.OBJ    13
-ALCOIN.OBJ     2                 ALLANG.OBJ    12
-ALHARD.OBJ     3                 ALTEST.OBJ    11
-ALEXEC.XX     10                 ALEXEC.SAV   112
- 52 Files, 1371 Blocks
-  135 Free blocks
+Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/tempest/notebooks/Fix%20Tempest%20Sources%20to%20Work%20With%20MAC65%20VM03.09.ipynb) we have a version that builds without error and produces a matching binary.
+
+```
+.R LINKM
+*BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+*ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
+MULT DEF OF VGBRIT IN MODULE:  000C
+MULT DEF OF VGLIST IN MODULE:  000C
+MULT DEF OF XCOMP  IN MODULE:  000C
 ```
 
 ## Getting Files off the PDP-11 and Onto Our Local Machine
 ### The Dirty Way
-We have a bunch of object files on our `tempest_original.rk05` disk now. We can parse the contents of this
-file on our local machine to extract the goodies.
+We have a bunch of object files on our `tempest_original.rk05` disk now. We can [parse the contents of this
+file on our local machine to extract the goodies](../notebooks/Extract%20Object%20Files%20from%20Tempest%20RK05%20Disk%20after%20Assembling%20and%20Linking.ipynb). If you can get this to work it's by far preferable to the tedious way below.
 
 ### The Tedious Way
 This is tedious unfortunately. To get a single file off the PDP11 we do the following.
@@ -420,7 +441,49 @@ LNKLNK.LST     8
  15 Files, 252 Blocks
   234 Free blocks
 ```
+## Sidenote: Building with Listings
 
+An alternative invocation of the assembler will produce listing files. Again, you might need to do this piecemeal as I've found it can generate
+errors when attempted all at once:
+
+```
+R MAC65
+OBJ:ALWELG,OBJ:ALWELG.LST=ALWELG
+OBJ:ALSCO2,OBJ:ALSCO2.LST=ALSCO2
+```
+```
+R MAC65
+OBJ:ALDIS2,OBJ:ALDIS2.LST=ALDIS2
+OBJ:ALEXEC,OBJ:ALEXEC.LST=ALEXEC
+```
+```
+R MAC65
+OBJ:ALSOUN,OBJ:ALSOUN.LST=ALSOUN
+OBJ:ALVROM,OBJ:ALVROM.LST=ALVROM
+```
+
+```
+R MAC65
+OBJ:ALCOIN,OBJ:ALCOIN.LST=ALCOIN
+OBJ:ALLANG,OBJ:ALLANG.LST=ALLANG
+```
+```
+R MAC65
+OBJ:ALTES2,OBJ:ALTES2.LST=ALTES2
+OBJ:ALHAR2,OBJ:ALHAR2.LST=ALHAR2
+```
+```
+R MAC65
+OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
+OBJ:ALVGUT,OBJ:ALVGUT.LST=ALVGUT
+
+```
+
+Example of building with a symbol cross-reference table:
+```
+R MAC65
+OBJ:ALWELG/L:MEB,OBJ:ALWELG.LST=ALWELG/C
+```
 ## Acknowledgments
 This would not have been possible without the notes and files in [Thomas Cherrywood's repository](https://github.com/tschak909/atari-coin-op-assembler/).
 There he builds the Centipede sources so pulling together these notes was largely a question of adapting and reusing his work.
