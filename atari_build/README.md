@@ -265,7 +265,7 @@ What we actually want it to assemble is something like this:
 ```
 
 That is, we need it to recognize that `SCLEVEL` is a global value that is two bytes long and so requires the `8D` opcode
-for the `STA' operation rather than the `85` opcode, which is `STA' for a single-byte value.
+for the `STA` operation rather than the `85` opcode, which is `STA' for a single-byte value.
 
 It recognises it correctly in the previous line:
 ```
@@ -285,6 +285,12 @@ Now, we could try patching the assembler and linker but that would take ages. In
 original source. For example to fix `SCLEVEL+2` we can do the following:
 
 ```diff
+diff --git a/ALVROM.MAC b/ALVROM.MAC
+index a122b96..d64e7b0 100644
+--- a/ALVROM.MAC
++++ b/ALVROM.MAC
+ SCLEVEL	=SCLEVL-SCORES+SCOBUF
++SCLVL2	=SCLEVEL+2
 --- a/ALSCO2.MAC
 +++ b/ALSCO2.MAC
 @@ -31,7 +31,8 @@
@@ -301,7 +307,7 @@ original source. For example to fix `SCLEVEL+2` we can do the following:
 +	STA SCLVL2
 ```
 
-Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/tempest/notebooks/Fix%20Tempest%20Sources%20to%20Work%20With%20MAC65%20VM03.09.ipynb) we have a version that builds without error and produces a matching binary.
+Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/Fix%20Tempest%20Sources%20to%20Work%20With%20MAC65%20VM03.09.ipynb) we have a version that builds without error and produces a matching binary.
 
 ```
 .R LINKM
@@ -363,8 +369,10 @@ The Tempest source files are available from the [Historical Sources GitHub repos
 In order to build them in RT-11 we needed to create a virtual RK05 cartridge disk that our emulated RT-11 can use. In a Jupyter notebook
 we
 [create this disk image with the tempest sources on it](../notebooks/Create%20RK05%20Disk%20Cartridge%20File%20Image%20From%20Tempest%20Sources.ipynb).
-The format of these disk images is relatively simple (once you find the [appropriate documentation](../material/AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf). And of course it helps to have [something to start from](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op) thanks
-to [Thomas Cherryhomes](https://github.com/tschak909).
+The format of these disk images is relatively simple (once you find the
+[appropriate documentation](../material/AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf)).
+And of course it helps to have [something to start from](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op)
+thanks to [Thomas Cherryhomes](https://github.com/tschak909).
 
 Our notebook generates an output file called `tempest_original.rk05`. In order to load this file as an RK05 disk cartrige in the
 RT-11 emulator we include the following line in `tempest.ini`, the settings file we invoked when booted up our emulated enivironment

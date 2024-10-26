@@ -112,6 +112,7 @@ def parse_lda_file(filename):
 
 word = lambda x: (x).to_bytes(2,"little")
 
+# See `AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf` in `../materials`
 def create_disk_from_files(src_folder, disk_name, suffices=[]):
     BLOCK_LENGTH = 512
     FILES_START = 0x4c00
