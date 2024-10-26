@@ -307,8 +307,7 @@ index a122b96..d64e7b0 100644
 +	STA SCLVL2
 ```
 
-Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/Fix%20Tempest%20Sources%20to%20Work%20With%20MAC65%20VM03.09.ipynb) we have a version that builds without error and produces a matching binary.
-
+Once we go ahead and [do this for all instances, assemble and link, and then examine our output](./notebooks/tempest/notebooks/Build Tempest Sources for Version 1.ipynb) we have a version that builds without error and produces a matching binary.
 ```
 .R LINKM
 *BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
@@ -486,7 +485,13 @@ OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
 OBJ:ALVGUT,OBJ:ALVGUT.LST=ALVGUT
 
 ```
-
+```
+R MAC65
+OBJ:ALHARD,OBJ:ALHARD.LST=ALHARD
+OBJ:ALDISP,OBJ:ALDISP.LST=ALDISP
+OBJ:ALSCOR,OBJ:ALSCOR.LST=ALSCOR
+OBJ:ALTEST,OBJ:ALTEST.LST=ALTEST
+```
 Example of building with a symbol cross-reference table:
 ```
 R MAC65
