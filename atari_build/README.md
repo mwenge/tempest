@@ -1,5 +1,23 @@
 # Building Tempest Using the Original Atari Toolset
 
+In the 1970 and early 1980s Atari developed its arcade games using PDP-11 computers manufactured by [Digital Equipment Corporation (DEC)](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation).
+
+The operating system Atari used on these computers was the RT-11. Thanks to a data dump that surfaced on [bitsavers.com](https://bitsavers.org/bits/Atari/arcade/) in late 2023 we have a copy of the toolchain Atari developed for the RT-11. This toolchain is the one we will use here, on an
+emulated RT-11/PD-11 environment, to build Tempest from the [sources](https://github.com/historicalsources/tempest) that appeared on the
+[historicalsource](https://github.com/historicalsource) github repository in October 2021. The provenance of these sources is uncertain, but
+as you will see they are definitely genuine: they allow us to build a Tempest that matches two known versions of the original arcade game.
+
+This doc is intended to give a total beginner (like myself) an idea of how to go about building the Tempest sources from scratch on a modern linux
+environment. It complements slightly more detailed Jupyter notebooks in this repository that allow you to perform the steps required for building both
+versions of Tempest provided by the source dump. These are [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb), which
+correspond to the ROM set that MAME (the modern arcade emulator) [refers to](https://github.com/mamedev/mame/blob/master/src/mame/atari/tempest.cpp) 
+as 'Rev 1' and [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb), which corresponds to the very last 
+version of Tempest that was released and the ROM set that MAME refers to as 'Rev 3'. 
+
+[This Jupyter notebook](../notebooks/Differences%20Between%20Rev1%20and%20Rev2A(Alt).ipynb) details the differences between these two revisions in terms of the changes and bugfixes that were made.
+
+Enough preamble, let's try to build this thing.
+
 <!-- vim-markdown-toc GFM -->
 
 * [Prerequisites](#prerequisites)
@@ -18,23 +36,6 @@
 * [Acknowledgments](#acknowledgments)
 
 <!-- vim-markdown-toc -->
-In the 1970 and early 1980s Atari developed its arcade games using PDP-11 computers manufactured by [Digital Equipment Corporation (DEC)](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation).
-
-The operating system Atari used on these computers was the RT-11. Thanks to a data dump that surfaced on [bitsavers.com](https://bitsavers.org/bits/Atari/arcade/) in late 2023 we have a copy of the toolchain Atari developed for the RT-11. This toolchain is the one we will use here, on an
-emulated RT-11/PD-11 environment, to build Tempest from the [sources](https://github.com/historicalsources/tempest) that appeared on the
-[historicalsource](https://github.com/historicalsource) github repository in October 2021. The provenance of these sources is uncertain, but
-as you will see they are definitely genuine: they allow us to build a Tempest that matches two known versions of the original arcade game.
-
-This doc is intended to give a total beginner (like myself) an idea of how to go about building the Tempest sources from scratch on a modern linux
-environment. It complements slightly more detailed Jupyter notebooks in this repository that allow you to perform the steps required for building both
-versions of Tempest provided by the source dump. These are [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb), which
-correspond to the ROM set that MAME (the modern arcade emulator) [refers to](https://github.com/mamedev/mame/blob/master/src/mame/atari/tempest.cpp) 
-as 'Rev 1' and [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb), which corresponds to the very last 
-version of Tempest that was released and the ROM set that MAME refers to as 'Rev 3'. 
-
-[This Jupyter notebook]() details the differences between these two revisions in terms of the changes and bugfixes that were made.
-
-Enough preamble, let's try to build this thing.
 
 ## Prerequisites
 We need the PDP-11 emulator provided by `simh`:
@@ -213,14 +214,12 @@ VGMC  .MAC     8                 STATE2.MAC     2
 ANVGAN.MAC    12                 ALEXEC.MAC    24
 ALDIAG.MAC     6                 COIN65.MAC    47
 ALTEST.MAC    32                 ASCVG .MAC     2
-ALEXEC.LDA    77                 ALWELG.OBJ    40
 ALSCO2.OBJ    18                 ALDIS2.OBJ    32
 ALEXEC.OBJ     8                 ALSOUN.OBJ     4
 ALVROM.OBJ    13                 ALCOIN.OBJ     2
 ALLANG.OBJ    12                 ALHAR2.OBJ     3
 ALTES2.OBJ    11                 ALEARO.OBJ     3
-ALVGUT.OBJ     2                 ALEXEC.LST   108
-ALEXEC.MAP    10
+ALVGUT.OBJ     2                 ALWELG.OBJ    40
  47 Files, 3126 Blocks
   2902 Free blocks
 
@@ -264,7 +263,7 @@ BYTE RELOCATION ERROR AT D827
 BYTE RELOCATION ERROR AT DCB5
 ```
 
-The problem is that the version of the MAC65 assembler we have (VM 03.09) has not correctly interpreted lines like the following:
+The problem is that our toolchain has not correctly interpreted lines like the following:
 ```
     63   0034    85    02G                      STA SCLEVEL+2
 ```
@@ -274,47 +273,42 @@ What we actually want it to assemble is something like this:
 ```
 
 That is, we need it to recognize that `SCLEVEL` is a global value that is two bytes long and so requires the `8D` opcode
-for the `STA` operation rather than the `85` opcode, which is `STA' for a single-byte value.
+for the `STA` operation rather than the `85` opcode which is `STA` for a single-byte value.
 
-It recognises it correctly in the previous line:
+The assembeler recognises the need for `8D` correctly in this line:
 ```
     62   0031    8D  0000G                      STA SCLEVEL
 ```
 What has thrown it off in our case is the offset of `+2`.
 
-The `LINKM` version on our disk is 'V04-06'. According to the map file that came with our sources the
-version actually used to build Tempest was 'V05.00':
+We don't know the version of `MAC65` used for building Tempest back in the day since there is nothing on the sources disk to tell us,
+but the version we are using here is `VM 03.09`. The `LINKM` version on our disk (the one
+we got via the bitsavers dump, along with our `MAC65`)  is `V04-06`. 
+According to the `ALEXEC.MAP` file that came with our sources the version actually used to build Tempest was 'V05.00':
 ```
 ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53 
 RK1:ALEXEC.SAV 
 ```
-So we likely have the 'wrong' version of both assembler and linker.
+So we likely have the 'wrong' version of both assembler or linker or both.
 
-Now, we could try patching the assembler and linker but that would take ages. Instead what we can do is fix up all instances of this issue in the
+Now, we could try patching the assembler and/or linker but that would take ages. Instead what we can do is fix up all instances of this issue in the
 original source. For example to fix `SCLEVEL+2` we can do the following:
 
 ```diff
-diff --git a/ALVROM.MAC b/ALVROM.MAC
-index a122b96..d64e7b0 100644
 --- a/ALVROM.MAC
 +++ b/ALVROM.MAC
- SCLEVEL	=SCLEVL-SCORES+SCOBUF
 +SCLVL2	=SCLEVEL+2
 --- a/ALSCO2.MAC
 +++ b/ALSCO2.MAC
 @@ -31,7 +31,8 @@
- 	.GLOBL MBOLIFE,MSPIKE,MAPROA,MSUPZA
- 	.GLOBL VGSTAT,EABAD
- 	.GLOBL HISLOC,SCALOC,LIVLOC,SCOLOC
 -	.GLOBL SCECOU,SCORES,HIILOC,LSYMB0,SCOBUF,SCLEVEL,VORBOX
 +	.GLOBL SCECOU,SCORES,HIILOC,LSYMB0,SCOBUF,SCLEVEL,VORBOX,SCLVL2
-@@ -70,7 +71,7 @@ INFO:
- 	JSR VGCNTR
- 	LDA VGMSGA		;BLANK OUT LEVEL
- 	STA SCLEVEL
 -	STA SCLEVEL+2
 +	STA SCLVL2
 ```
+
+In case it's not apparent, we just create a new global variable for the 'offset' version used by the source, so instead of using
+something like `SCALEVEL+2`, we create a variable called `SCLVL2` and assign the value of `SCALEVEL+2` to it.
 
 Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/tempest/notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb) we have a version that builds without error and produces a matching binary.
 ```
@@ -326,7 +320,10 @@ MULT DEF OF VGLIST IN MODULE:  000C
 MULT DEF OF XCOMP  IN MODULE:  000C
 ```
 
-There are two Jupyter notebooks that allow you to patch, build, and play Tempest from its sources in this repository:
+The `MULT DEF` warnings don't see to make any difference. We get a binary output called `ALEXEC.LDA` that is byte-for-byte identical to the one
+both on the `historicalsource` disk and to the ROM files that float around the internet for playing Tempest on MAME.
+
+To demonstrate this in detail, there are two Jupyter notebooks that allow you to patch, build, and play Tempest from its sources in this repository:
 * [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb)
 * [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb)
 
