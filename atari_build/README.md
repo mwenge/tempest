@@ -3,7 +3,7 @@
 In the 1970 and early 1980s Atari developed its arcade games using PDP-11 computers manufactured by [Digital Equipment Corporation (DEC)](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation).
 
 The operating system Atari used on these computers was the RT-11. Thanks to a data dump that surfaced on [bitsavers.com](https://bitsavers.org/bits/Atari/arcade/) in late 2023 we have a copy of the toolchain Atari developed for the RT-11. This toolchain is the one we will use here, on an
-emulated RT-11/PD-11 environment, to build Tempest from the [sources](https://github.com/historicalsources/tempest) that appeared on the
+emulated RT-11/PDP-11 environment, to build Tempest from the [sources](https://github.com/historicalsources/tempest) that appeared on the
 [historicalsource](https://github.com/historicalsource) github repository in October 2021. The provenance of these sources is uncertain, but
 as you will see they are definitely genuine: they allow us to build a Tempest that matches two known versions of the original arcade game.
 
@@ -25,7 +25,8 @@ Enough preamble, let's try to build this thing.
 * [Let's Build](#lets-build)
   * [Building Tempest Version 2A(alt)](#building-tempest-version-2aalt)
 * [Let's Link](#lets-link)
-* [About Our Emulated Build Environment](#about-our-emulated-build-environment)
+* [Let's Play](#lets-play)
+* [Sidenote: About Our Emulated Build Environment](#sidenote-about-our-emulated-build-environment)
   * [The Files in this Directory](#the-files-in-this-directory)
   * [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05)
 * [Sidenote: Viewing A Floppy Disk](#sidenote-viewing-a-floppy-disk)
@@ -68,37 +69,29 @@ cont
 
 ## Let's Build
 
-To actually view the sources on our tempest disk we have to do:
+To view the sources on our tempest source code disk we have to do:
 
 ```
 DIR RK1:
 ```
-
+This gives:
 ```
 .DIR RK1:
-
-ALVGUT.MAC    19                 ALCOIN.MAC     1
-STATE2.MAP     1                 MBUCOD.V05    32
-002X2 .DAT     1                 MBOX  .SAV    19
-ALEXEC.LDA    77                 HLL65 .MAC     4
-ALHARD.MAC     7                 ALSOUN.MAC    17
-ALWELG.MAC   129                 TEMPST.DOC    16
-ALHAR2.MAC     7                 ALDISP.MAC   111
-MBUDOC.DOC    34                 ALSCO2.MAC    50
-ALDIS2.MAC   111                 ALSCOR.MAC    50
-ALCOMN.MAC    52                 ALVROM.MAC    77
-ALLANG.MAC    14                 STATE2.COM     1
-ALEXEC.MAP    12                 ALTES2.MAC    34
-ALEARO.MAC    12                 VGMC  .MAC     8
-STATE2.MAC     2                 ANVGAN.MAC    12
-ALEXEC.COM     2                 ALEXEC.MAC    24
-TEMPST.LDA    77                 MABOX .DAT     1
-002X1 .DAT     1                 MBUCOD.MAP     2
-MBUCOD.COM     1                 STATE2.SAV     1
-ALDIAG.MAC     6                 COIN65.MAC    47
-ALTEST.MAC    32                 ASCVG .MAC     2
- 40 Files, 1106 Blocks
-  400 Free blocks
+ 
+ ALVGUT.MAC    19                 ALCOIN.MAC     1           
+ HLL65 .MAC     4                 ALHARD.MAC     7           
+ ALSOUN.MAC    17                 ALWELG.MAC   129           
+ ALHAR2.MAC     7                 ALDISP.MAC   111           
+ ALSCO2.MAC    50                 ALDIS2.MAC   111           
+ ALSCOR.MAC    50                 ALCOMN.MAC    52           
+ ALVROM.MAC    77                 ALLANG.MAC    14           
+ ALTES2.MAC    34                 ALEARO.MAC    12           
+ VGMC  .MAC     8                 STATE2.MAC     2           
+ ANVGAN.MAC    12                 ALEXEC.MAC    24           
+ ALDIAG.MAC     6                 COIN65.MAC    47           
+ ALTEST.MAC    32                 ASCVG .MAC     2           
+  24 Files, 828 Blocks
+   5200 Free blocks
 ```
 
 (See [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05) for how we created
@@ -226,7 +219,8 @@ ALVGUT.OBJ     2                 ALWELG.OBJ    40
 ```
 
 ## Let's Link
-Now that we have our assembled object files we need to collate them into a single 'executable' binary. This process
+Now that we have our assembled object files we need to collate them into a single 'executable' binary that will be called
+`ALEXEC.LDA`. This process
 is called linking and the Atari tool du-jour was `LINKM`.
 
 The command to link our object files is:
@@ -275,7 +269,7 @@ What we actually want it to assemble is something like this:
 That is, we need it to recognize that `SCLEVEL` is a global value that is two bytes long and so requires the `8D` opcode
 for the `STA` operation rather than the `85` opcode which is `STA` for a single-byte value.
 
-The assembeler recognises the need for `8D` correctly in this line:
+The assembler recognises the need for `8D` correctly in this line:
 ```
     62   0031    8D  0000G                      STA SCLEVEL
 ```
@@ -284,7 +278,7 @@ What has thrown it off in our case is the offset of `+2`.
 We don't know the version of `MAC65` used for building Tempest back in the day since there is nothing on the sources disk to tell us,
 but the version we are using here is `VM 03.09`. The `LINKM` version on our disk (the one
 we got via the bitsavers dump, along with our `MAC65`)  is `V04-06`. 
-According to the `ALEXEC.MAP` file that came with our sources the version actually used to build Tempest was 'V05.00':
+According to the `ALEXEC.MAP` file that came with our sources the version actually used to build Tempest was `V05.00`:
 ```
 ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53 
 RK1:ALEXEC.SAV 
@@ -292,7 +286,7 @@ RK1:ALEXEC.SAV
 So we likely have the 'wrong' version of both assembler or linker or both.
 
 Now, we could try patching the assembler and/or linker but that would take ages. Instead what we can do is fix up all instances of this issue in the
-original source. For example to fix `SCLEVEL+2` we can do the following:
+original source. For example, to fix `SCLEVEL+2` we can do the following:
 
 ```diff
 --- a/ALVROM.MAC
@@ -321,16 +315,18 @@ MULT DEF OF XCOMP  IN MODULE:  000C
 ```
 
 The `MULT DEF` warnings don't see to make any difference. We get a binary output called `ALEXEC.LDA` that is byte-for-byte identical to the one
-both on the `historicalsource` disk and to the ROM files that float around the internet for playing Tempest on MAME.
+both on the `historicalsource` disk and that can be used to generate the ROM files that float around the internet for playing Tempest on MAME.
 
+## Let's Play
 To demonstrate this in detail, there are two Jupyter notebooks that allow you to patch, build, and play Tempest from its sources in this repository:
 * [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb)
 * [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb)
 
-In each of these I've more or less automated the required steps. Another doc worth checking out contains the [steps for extracting the ROMS from 
-the binaries that comes with the source dump](../notebooks/Reconstruct%20ROMs%20from%20Object%20FIles%20from%20Build%20with%20Failed%20Linking%20Step.ipynb) and playing them on MAME. 
+In each of these I've more or less automated the required steps. The source dump contains two versions of Tempest, which is why we have
+two builds to choose from. Another doc worth checking out contains the [steps for extracting the ROMS from 
+the binaries that comes with the source dump](../notebooks/Reconstruct%20ROMs%20from%20Object%20FIles%20in%20the%20Tempest%20Source%20Dump.ipynb) and playing them on MAME. 
 
-## About Our Emulated Build Environment
+## Sidenote: About Our Emulated Build Environment
 
 
 ### The Files in this Directory
@@ -357,11 +353,12 @@ The Tempest source files are available from the [Historical Sources GitHub repos
 In order to build them in RT-11 we needed to create a virtual RK05 cartridge disk that our emulated RT-11 can use. In a Jupyter notebook
 we
 [create this disk image with the tempest sources on it](../notebooks/Create%20RK05%20Disk%20Cartridge%20File%20Image%20From%20Tempest%20Sources.ipynb).
-The format of these disk images is relatively simple (once you find the
+If you're wondering where `rt11_utils` comes from in that notebook, it's a [short python file of utility functions I cooked up](../notebooks/rt11_utils.py) for reading and writing stuff from RT11 disks. The format of these disk images is relatively simple (once you find the
 [appropriate documentation](../material/AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf)).
-The `syk.r05` is copied from Thomas Cherryhome's [work on rebuilding the Centipede sources](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op). I also adapted the `tempest.ini` file from his work.
+The `syk.r05` (which provides most of the RT-11 system) is copied from Thomas Cherryhome's [work on rebuilding the Centipede sources](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op). I also adapted the `tempest.ini` file from his work.
 
-Our notebook generates an output file called `tempest_original.rk05`. In order to load this file as an RK05 disk cartrige in the
+[Our notebook](../notebooks/Create%20RK05%20Disk%20Cartridge%20File%20Image%20From%20Tempest%20Sources.ipynb) generates
+an output file called `tempest_original.rk05`. In order to load this file as an RK05 disk cartridge in the
 RT-11 emulator we include the following line in `tempest.ini`, the settings file we invoked when booted up our emulated enivironment
 with the command `pdp11 tempest.ini`:
 ```
