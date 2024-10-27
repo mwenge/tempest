@@ -7,17 +7,35 @@
 * [Let's Build](#lets-build)
   * [Building Tempest Version 2A(alt)](#building-tempest-version-2aalt)
 * [Let's Link](#lets-link)
-* [Getting Files off the PDP-11 and Onto Our Local Machine](#getting-files-off-the-pdp-11-and-onto-our-local-machine)
-  * [The Dirty Way](#the-dirty-way)
-  * [The Tedious Way](#the-tedious-way)
 * [About Our Emulated Build Environment](#about-our-emulated-build-environment)
   * [The Files in this Directory](#the-files-in-this-directory)
   * [The Tempest Source Files: tempest_original.rk05](#the-tempest-source-files-tempest_originalrk05)
 * [Sidenote: Viewing A Floppy Disk](#sidenote-viewing-a-floppy-disk)
 * [Sidenote: Building with Listings](#sidenote-building-with-listings)
+* [Sidenote: Getting Files off the PDP-11 and Onto Our Local Machine](#sidenote-getting-files-off-the-pdp-11-and-onto-our-local-machine)
+  * [The Dirty Way](#the-dirty-way)
+  * [The Tedious Way](#the-tedious-way)
 * [Acknowledgments](#acknowledgments)
 
 <!-- vim-markdown-toc -->
+In the 1970 and early 1980s Atari developed its arcade games using PDP-11 computers manufactured by [Digital Equipment Corporation (DEC)](https://en.wikipedia.org/wiki/Digital_Equipment_Corporation).
+
+The operating system Atari used on these computers was the RT-11. Thanks to a data dump that surfaced on [bitsavers.com](https://bitsavers.org/bits/Atari/arcade/) in late 2023 we have a copy of the toolchain Atari developed for the RT-11. This toolchain is the one we will use here, on an
+emulated RT-11/PD-11 environment, to build Tempest from the [sources](https://github.com/historicalsources/tempest) that appeared on the
+[historicalsource](https://github.com/historicalsource) github repository in October 2021. The provenance of these sources is uncertain, but
+as you will see they are definitely genuine: they allow us to build a Tempest that matches two known versions of the original arcade game.
+
+This doc is intended to give a total beginner (like myself) an idea of how to go about building the Tempest sources from scratch on a modern linux
+environment. It complements slightly more detailed Jupyter notebooks in this repository that allow you to perform the steps required for building both
+versions of Tempest provided by the source dump. These are [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb), which
+correspond to the ROM set that MAME (the modern arcade emulator) [refers to](https://github.com/mamedev/mame/blob/master/src/mame/atari/tempest.cpp) 
+as 'Rev 1' and [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb), which corresponds to the very last 
+version of Tempest that was released and the ROM set that MAME refers to as 'Rev 3'. 
+
+[This Jupyter notebook]() details the differences between these two revisions in terms of the changes and bugfixes that were made.
+
+Enough preamble, let's try to build this thing.
+
 ## Prerequisites
 We need the PDP-11 emulator provided by `simh`:
 ```
@@ -49,24 +67,14 @@ cont
 
 ## Let's Build
 
-`OBJ` and `BIN` are used as nicknames in our build commands for the locations of the object files
-and final linked binary. We're going to write them to the tempest disk which has the name `RK1`. So let's 
-assign these nicknames accordingly:
-```
-ASS RK1 OBJ
-ASS RK1 BIN
-```
-
 To actually view the sources on our tempest disk we have to do:
 
 ```
-DIR DK1:
+DIR RK1:
 ```
 
-I'm not totally clear why we use `DK1` and `RK1` interchangeably this way. But here are the files on our
-tempest disk (tempest_original.rk05) anyway.
 ```
-.DIR DK1:
+.DIR RK1:
 
 ALVGUT.MAC    19                 ALCOIN.MAC     1
 STATE2.MAP     1                 MBUCOD.V05    32
@@ -102,12 +110,12 @@ run does not seem to work in practice (some files get ignored), so we split the 
 
 ```
 R MAC65
-OBJ:ALWELG=ALWELG
-OBJ:ALSCO2=ALSCO2
-OBJ:ALDIS2=ALDIS2
-OBJ:ALEXEC=ALEXEC
-OBJ:ALSOUN=ALSOUN
-OBJ:ALVROM=ALVROM
+RK1:ALWELG=ALWELG
+RK1:ALSCO2=ALSCO2
+RK1:ALDIS2=ALDIS2
+RK1:ALEXEC=ALEXEC
+RK1:ALSOUN=ALSOUN
+RK1:ALVROM=ALVROM
 
 ```
 
@@ -115,12 +123,12 @@ To run the second batch press `Ctrl-C` to 'close' the assembler first, then past
 
 ```
 R MAC65
-OBJ:ALCOIN=ALCOIN
-OBJ:ALLANG=ALLANG
-OBJ:ALHAR2=ALHAR2
-OBJ:ALTES2=ALTES2
-OBJ:ALEARO=ALEARO
-OBJ:ALVGUT=ALVGUT
+RK1:ALCOIN=ALCOIN
+RK1:ALLANG=ALLANG
+RK1:ALHAR2=ALHAR2
+RK1:ALTES2=ALTES2
+RK1:ALEARO=ALEARO
+RK1:ALVGUT=ALVGUT
 
 ```
 
@@ -128,12 +136,12 @@ Below is the output of our build commands. The files are successfully assembled.
 at the very end to 'close' the assembler.
 ```
 .R MAC65
-*OBJ:ALWELG=ALWELG
-OBJ:ALSCO2=ALSCO2
-OBJ:ALDIS2=ALDIS2
-OBJ:ALEXEC=ALEXEC
-OBJ:ALSOUN=ALSOUN
-OBJ:ALVROM=ALVROM
+*RK1:ALWELG=ALWELG
+RK1:ALSCO2=ALSCO2
+RK1:ALDIS2=ALDIS2
+RK1:ALEXEC=ALEXEC
+RK1:ALSOUN=ALSOUN
+RK1:ALVROM=ALVROM
 ERRORS DETECTED: 0
 FREE CORE: 11479. WORDS
 
@@ -155,15 +163,15 @@ FREE CORE: 12599. WORDS
 ```
 ```
 .R MAC65
-*OBJ:ALCOIN=ALCOIN
-OBJ:ALLANG=ALLANG
-OBJ:ERRORS DETECTED: 0
+*RK1:ALCOIN=ALCOIN
+RK1:ALLANG=ALLANG
+RK1:ERRORS DETECTED: 0
 FREE CORE: 11118. WORDS
 
 *ALHAR2=ALHAR2
-OBJ:ALTES2=ALTES2
-OBJ:ALEARO=ALEARO
-OBJ:ALVGUT=ALVGUT
+RK1:ALTES2=ALTES2
+RK1:ALEARO=ALEARO
+RK1:ALVGUT=ALVGUT
 ERRORS DETECTED: 0
 FREE CORE: 11892. WORDS
 
@@ -181,16 +189,17 @@ FREE CORE: 13178. WORDS
 
 ```
 
-We can view the assembled files with a `DIR` command:
+As before, we can view the assembled files with a `DIR` command. Notice that we've written our object files to the same
+disk as the sources. This will be helpful in [extracting them later](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb).
 
 ```
-DIR OBJ:
+DIR RK1:
 ```
 
 This shows us everything on the tempest disk but you'll notice our object files at the very end of
 the listing:
 ```
-.DIR OBJ:
+.DIR RK1:
 
 ALVGUT.MAC    19                 ALCOIN.MAC     1
 HLL65 .MAC     4                 ALHARD.MAC     7
@@ -224,7 +233,7 @@ is called linking and the Atari tool du-jour was `LINKM`.
 The command to link our object files is:
 ```
 R LINKM
-BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+RK1:ALEXEC/L,ALEXEC/A=RK1:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
 ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 ```
 
@@ -232,7 +241,7 @@ ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 Unfortunately this does not work:
 ```
 .R LINKM
-*BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+*RK1:ALEXEC/L,ALEXEC/A=RK1:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
 *ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 MULT DEF OF VGBRIT IN MODULE:  000C
 MULT DEF OF VGLIST IN MODULE:  000C
@@ -277,7 +286,7 @@ The `LINKM` version on our disk is 'V04-06'. According to the map file that came
 version actually used to build Tempest was 'V05.00':
 ```
 ATARI LINKM V05.00 LOAD MAP   27-AUG-81   16:46:53 
-BIN:ALEXEC.SAV 
+RK1:ALEXEC.SAV 
 ```
 So we likely have the 'wrong' version of both assembler and linker.
 
@@ -307,50 +316,22 @@ index a122b96..d64e7b0 100644
 +	STA SCLVL2
 ```
 
-Once we go ahead and [do this for all instances, assemble and link, and then examine our output](./notebooks/tempest/notebooks/Build Tempest Sources for Version 1.ipynb) we have a version that builds without error and produces a matching binary.
+Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/tempest/notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb) we have a version that builds without error and produces a matching binary.
 ```
 .R LINKM
-*BIN:ALEXEC/L,ALEXEC/A=OBJ:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
+*RK1:ALEXEC/L,ALEXEC/A=RK1:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
 *ALCOIN,ALLANG,ALHAR2,ALTES2,ALEARO,ALVGUT
 MULT DEF OF VGBRIT IN MODULE:  000C
 MULT DEF OF VGLIST IN MODULE:  000C
 MULT DEF OF XCOMP  IN MODULE:  000C
 ```
 
-## Getting Files off the PDP-11 and Onto Our Local Machine
-### The Dirty Way
-We have a bunch of object files on our `tempest_original.rk05` disk now. We can [parse the contents of this
-file on our local machine to extract the goodies](../notebooks/Extract%20Object%20Files%20from%20Tempest%20RK05%20Disk%20after%20Assembling%20and%20Linking.ipynb). If you can get this to work it's by far preferable to the tedious way below.
+There are two Jupyter notebooks that allow you to patch, build, and play Tempest from its sources in this repository:
+* [Version 1](../notebooks/Build%20Tempest%20Sources%20for%20Version%201.ipynb)
+* [Version 2A(Alt)](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb)
 
-### The Tedious Way
-This is tedious unfortunately. To get a single file off the PDP11 we do the following.
-
-Press Ctrl-E to suspend the emulation. Now we set up the `ptp` (print device) to point to a
-file on our local filesystem called `file.obj`. This name is arbitrary.
-
-```
-att ptp file.obj
-```
-
-Now we re-enter the emulation:
-```
-cont
-```
-
-Finally we copy a file from the PDP11, in this case one of our object files `ALDIS2.OBJ`, to the file
-on our local filesystem:
-
-```
-COPY DK:ALDIS2.OBJ PC:
-```
-
-Now on our local filesystem we can rename `file.obj` to its correct name, e.g.:
-
-```
-mv file.obj ALDIS2.OBJ
-```
-
-We need to repeat this process for each file we're interested in.
+In each of these I've more or less automated the required steps. Another doc worth checking out contains the [steps for extracting the ROMS from 
+the binaries that comes with the source dump](../notebooks/Reconstruct%20ROMs%20from%20Object%20FIles%20from%20Build%20with%20Failed%20Linking%20Step.ipynb) and playing them on MAME. 
 
 ## About Our Emulated Build Environment
 
@@ -360,8 +341,19 @@ File|Description
 | --- | --- |
 tempest.ini| Configuration file for PDP-11.
 sy.rk05| The PDP-11/RT-11 system disk
+sy_clean.rk05| A clean version of the PDP-11/RT-11 system disk
 tempest_original.rk05| Our cartridge disk containing the Tempest sources
+tempest_original_clean.rk05| A clean cartridge disk containing the Tempest sources
+tempest_modified_clean.rk05| A clean cartridge disk containing the Tempest sources modified to build with our 'wrong' assembler/linker
 
+Using the environment will write content to `sy.rk05` and building Tempest will write object files and binaries to
+`tempest_original.rk05` so you will end up modifying both disks simply by using them.
+The two 'clean' disk images above are provided so that you can revert the emulated environment to its original state at any point by
+copying them over, e.g.: 
+```
+cp sy_clean.rk05 sy.rk05
+cp tempest_original_clean.rk05 tempest_original.rk05
+```
 
 ### The Tempest Source Files: tempest_original.rk05 
 The Tempest source files are available from the [Historical Sources GitHub repository](https://github.com/historicalsource/tempest).
@@ -370,8 +362,7 @@ we
 [create this disk image with the tempest sources on it](../notebooks/Create%20RK05%20Disk%20Cartridge%20File%20Image%20From%20Tempest%20Sources.ipynb).
 The format of these disk images is relatively simple (once you find the
 [appropriate documentation](../material/AA-PD6PA-TC_RT-11_Volume_and_File_Formats_Manual_Aug91.pdf)).
-And of course it helps to have [something to start from](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op)
-thanks to [Thomas Cherryhomes](https://github.com/tschak909).
+The `syk.r05` is copied from Thomas Cherryhome's [work on rebuilding the Centipede sources](https://github.com/tschak909/atari-coin-op-assembler/tree/main/coin-op). I also adapted the `tempest.ini` file from his work.
 
 Our notebook generates an output file called `tempest_original.rk05`. In order to load this file as an RK05 disk cartrige in the
 RT-11 emulator we include the following line in `tempest.ini`, the settings file we invoked when booted up our emulated enivironment
@@ -455,48 +446,83 @@ errors when attempted all at once:
 
 ```
 R MAC65
-OBJ:ALWELG,OBJ:ALWELG.LST=ALWELG
-OBJ:ALSCO2,OBJ:ALSCO2.LST=ALSCO2
+RK1:ALWELG,RK1:ALWELG.LST=ALWELG
+RK1:ALSCO2,RK1:ALSCO2.LST=ALSCO2
 ```
 ```
 R MAC65
-OBJ:ALDIS2,OBJ:ALDIS2.LST=ALDIS2
-OBJ:ALEXEC,OBJ:ALEXEC.LST=ALEXEC
+RK1:ALDIS2,RK1:ALDIS2.LST=ALDIS2
+RK1:ALEXEC,RK1:ALEXEC.LST=ALEXEC
 ```
 ```
 R MAC65
-OBJ:ALSOUN,OBJ:ALSOUN.LST=ALSOUN
-OBJ:ALVROM,OBJ:ALVROM.LST=ALVROM
+RK1:ALSOUN,RK1:ALSOUN.LST=ALSOUN
+RK1:ALVROM,RK1:ALVROM.LST=ALVROM
 ```
 
 ```
 R MAC65
-OBJ:ALCOIN,OBJ:ALCOIN.LST=ALCOIN
-OBJ:ALLANG,OBJ:ALLANG.LST=ALLANG
+RK1:ALCOIN,RK1:ALCOIN.LST=ALCOIN
+RK1:ALLANG,RK1:ALLANG.LST=ALLANG
 ```
 ```
 R MAC65
-OBJ:ALTES2,OBJ:ALTES2.LST=ALTES2
-OBJ:ALHAR2,OBJ:ALHAR2.LST=ALHAR2
+RK1:ALTES2,RK1:ALTES2.LST=ALTES2
+RK1:ALHAR2,RK1:ALHAR2.LST=ALHAR2
 ```
 ```
 R MAC65
-OBJ:ALEARO,OBJ:ALEARO.LST=ALEARO
-OBJ:ALVGUT,OBJ:ALVGUT.LST=ALVGUT
+RK1:ALEARO,RK1:ALEARO.LST=ALEARO
+RK1:ALVGUT,RK1:ALVGUT.LST=ALVGUT
 
 ```
 ```
 R MAC65
-OBJ:ALHARD,OBJ:ALHARD.LST=ALHARD
-OBJ:ALDISP,OBJ:ALDISP.LST=ALDISP
-OBJ:ALSCOR,OBJ:ALSCOR.LST=ALSCOR
-OBJ:ALTEST,OBJ:ALTEST.LST=ALTEST
+RK1:ALHARD,RK1:ALHARD.LST=ALHARD
+RK1:ALDISP,RK1:ALDISP.LST=ALDISP
+RK1:ALSCOR,RK1:ALSCOR.LST=ALSCOR
+RK1:ALTEST,RK1:ALTEST.LST=ALTEST
 ```
 Example of building with a symbol cross-reference table:
 ```
 R MAC65
-OBJ:ALWELG/L:MEB,OBJ:ALWELG.LST=ALWELG/C
+RK1:ALWELG/L:MEB,RK1:ALWELG.LST=ALWELG/C
 ```
+
+## Sidenote: Getting Files off the PDP-11 and Onto Our Local Machine
+### The Dirty Way
+We have a bunch of object files on our `tempest_original.rk05` disk now. We can [parse the contents of this
+file on our local machine to extract the goodies](../notebooks/Extract%20Object%20Files%20from%20Tempest%20RK05%20Disk%20after%20Assembling%20and%20Linking.ipynb). If you can get this to work it's by far preferable to the tedious way below.
+
+### The Tedious Way
+This is tedious unfortunately. To get a single file off the PDP11 we do the following.
+
+Press Ctrl-E to suspend the emulation. Now we set up the `ptp` (print device) to point to a
+file on our local filesystem called `file.obj`. This name is arbitrary.
+
+```
+att ptp file.obj
+```
+
+Now we re-enter the emulation:
+```
+cont
+```
+
+Finally we copy a file from the PDP11, in this case one of our object files `ALDIS2.OBJ`, to the file
+on our local filesystem:
+
+```
+COPY DK:ALDIS2.OBJ PC:
+```
+
+Now on our local filesystem we can rename `file.obj` to its correct name, e.g.:
+
+```
+mv file.obj ALDIS2.OBJ
+```
+
+We need to repeat this process for each file we're interested in.
 ## Acknowledgments
 This would not have been possible without the notes and files in [Thomas Cherrywood's repository](https://github.com/tschak909/atari-coin-op-assembler/).
 There he builds the Centipede sources so pulling together these notes was largely a question of adapting and reusing his work.
