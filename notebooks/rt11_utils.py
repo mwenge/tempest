@@ -126,8 +126,10 @@ def create_disk_from_files(src_folder, disk_name, suffices=[]):
         files_to_write += [(file_name,data,len(data))]
 
     # Copy in the home block header from another disk image
-    rk1 = open("rk1.rk05",'rb')
-    header = rk1.read(0xc00)
+    header = b'\xa0\x007\x08$\x00\r\x00\x00\x00\x00\n?BOOT-F-No boot on volume\r\n\n\x80\x00\xdf\x8bt\xff\xfd\x80\x1f\x94v\xff\xfa\x80\xff\x01'
+    header += (b'\x00' * 922)
+    header += b'\x01\x00\x06\x00\xa9\x8eRT11A                   DECRT11A    '
+    header += (b'\x00' * 2052)
 
     # Header for the directory entry
     dir_entry = word(16) + word(0) + word(1) + word(0) + word(38)

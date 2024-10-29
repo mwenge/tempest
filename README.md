@@ -6,6 +6,7 @@
 * [Extracting and Playing the ROMs](#extracting-and-playing-the-roms)
 * [Building the Tempest Source Code: Version 1](#building-the-tempest-source-code-version-1)
 * [Building the Tempest Source Code: Version 2A(Alt)](#building-the-tempest-source-code-version-2aalt)
+* [Building the Tempest Source Code: "Look Mom, No Hands."](#building-the-tempest-source-code-look-mom-no-hands)
 
 <!-- vim-markdown-toc -->
 
@@ -22,3 +23,6 @@ In [this Jupyter notebook](./notebooks/Build%20Tempest%20Sources%20for%20Version
 
 ## Building the Tempest Source Code: Version 2A(Alt) 
 In [this Jupyter notebook](./notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb) we build and play Version 2A(alt) of Tempest.
+
+## Building the Tempest Source Code: "Look Mom, No Hands."
+In [this separate repositoy](https://github.com/mwenge/tempest_fun) we completely automate the build process.
