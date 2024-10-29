@@ -304,7 +304,7 @@ original source. For example, to fix `SCLEVEL+2` we can do the following:
 In case it's not apparent, we just create a new global variable for the 'offset' version used by the source, so instead of using
 something like `SCALEVEL+2`, we create a variable called `SCLVL2` and assign the value of `SCALEVEL+2` to it.
 
-Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/tempest/notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb) we have a version that builds without error and produces a matching binary.
+Once we go ahead and [do this for all instances, assemble and link, and then examine our output](../notebooks/Build%20Tempest%20Sources%20for%20Version%202A(Alt).ipynb) we have a version that builds without error and produces a matching binary.
 ```
 .R LINKM
 *RK1:ALEXEC/L,ALEXEC/A=RK1:ALWELG,ALSCO2,ALDIS2,ALEXEC,ALSOUN,ALVROM/C
