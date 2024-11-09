@@ -15,7 +15,7 @@ If you are interested in the technical detail of building the sources, then read
 <!-- vim-markdown-toc -->
 
 ## Building the Tempest Source Code: An Introduction
-In 2021, the source code for Tempest [surfaced on the 'historicalsource' github repository](https://github.com/historicalsource/tempest/).
+In 2021, the source code for Tempest [surfaced on the 'historicalsource'](https://github.com/historicalsource/tempest/) github repository.
 In [the `atari_build` folder](./atari_build/) you'll find the steps for building the Tempest source
 code at home. There are complications, but it can be done!
 
